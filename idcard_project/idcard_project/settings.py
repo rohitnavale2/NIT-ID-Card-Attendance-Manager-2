@@ -8,11 +8,15 @@ from decouple import config
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = config('SECRET_KEY', default='django-insecure-change-me-in-production-key-12345678')
+# SECURITY
+SECRET_KEY = config('SECRET_KEY')
+DEBUG = config('DEBUG', default=False, cast=bool)
 
-DEBUG = config('DEBUG', default=True, cast=bool)
-
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,0.0.0.0').split(',')
+# Important for Render (use environment variable)
+ALLOWED_HOSTS = config(
+    'ALLOWED_HOSTS',
+    default='*'
+).split(',')
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -75,11 +79,12 @@ TIME_ZONE = 'Asia/Kolkata'
 USE_I18N = True
 USE_TZ = True
 
+# Static files (Required for Render)
 STATIC_URL = '/static/'
-STATIC_ROOT = BASE_DIR / 'static_root'
-STATICFILES_DIRS = []
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
+# Media
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
@@ -89,13 +94,14 @@ LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/login/'
 
+# Institute Details
 INSTITUTE_NAME = config('INSTITUTE_NAME', default='Naresh i Technologies')
 INSTITUTE_ADDRESS = config('INSTITUTE_ADDRESS', default='204, Durga Bhavani Plaza, Ameerpet, Hyderabad - 500016')
 INSTITUTE_PHONE = config('INSTITUTE_PHONE', default='040 2374 6666')
 INSTITUTE_EMAIL = config('INSTITUTE_EMAIL', default='info@nareshit.com')
 INSTITUTE_WEBSITE = config('INSTITUTE_WEBSITE', default='www.nareshit.com')
 
-# ── Email Configuration ────────────────────────────────────────────────────────
+# Email Configuration
 EMAIL_BACKEND       = config('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
 EMAIL_HOST          = config('EMAIL_HOST', default='smtp.gmail.com')
 EMAIL_PORT          = config('EMAIL_PORT', default=587, cast=int)
