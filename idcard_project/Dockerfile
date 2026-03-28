@@ -18,12 +18,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-# Create media dirs
-RUN mkdir -p media/photos media/receipts media/generated_cards static_root
+ENV PYTHONUNBUFFERED=1
 
-# Collect static files
-RUN python manage.py collectstatic --noinput
-
-EXPOSE 8000
-
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+# IMPORTANT for Railway
+CMD gunicorn idcard_project.wsgi:application --bind 0.0.0.0:$PORT
