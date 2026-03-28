@@ -1,0 +1,73 @@
+{% extends "idcard_app/base.html" %}
+{% block title %}Admin Login — NIT{% endblock %}
+
+{% block extra_css %}
+<style>
+  body { background: linear-gradient(135deg, #b91c1c 0%, #7f1d1d 60%, #1c1917 100%); }
+  .login-card {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 25px 50px rgba(0,0,0,.3);
+    padding: 2.5rem;
+    max-width: 400px;
+    margin: 5rem auto;
+  }
+  .login-logo {
+    text-align: center;
+    margin-bottom: 1.5rem;
+  }
+  .login-logo .logo-ring {
+    width: 72px; height: 72px;
+    background: var(--nit-red);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto .8rem;
+    box-shadow: 0 4px 12px rgba(185,28,28,.4);
+  }
+  .login-logo h4 {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    color: var(--nit-dark);
+  }
+  .login-logo p { color: #6b7280; font-size: .85rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="logo-ring">
+        <i class="bi bi-shield-lock-fill text-white" style="font-size:1.8rem"></i>
+      </div>
+      <h4>Admin Login</h4>
+      <p>NIT ID Card Management Portal</p>
+    </div>
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+      <div class="mb-3">
+        <label class="form-label fw-500">Username</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-person"></i></span>
+          <input type="text" name="username" class="form-control" placeholder="Enter username" required autofocus>
+        </div>
+      </div>
+      <div class="mb-4">
+        <label class="form-label fw-500">Password</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-lock"></i></span>
+          <input type="password" name="password" class="form-control" placeholder="Enter password" required>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-nit-red w-100 py-2 fw-600">
+        <i class="bi bi-box-arrow-in-right me-2"></i>Login
+      </button>
+    </form>
+
+    <div class="text-center mt-3">
+      <a href="{% url 'home' %}" class="text-muted small"><i class="bi bi-arrow-left me-1"></i>Back to Home</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

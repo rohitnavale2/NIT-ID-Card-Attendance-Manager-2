@@ -1,0 +1,103 @@
+{% extends "idcard_app/base.html" %}
+{% block title %}{{ title }} — Admin{% endblock %}
+{% block extra_css %}
+<style>
+  #map-preview { height: 300px; border-radius: 10px; border: 1px solid #e5e7eb; margin-bottom: 1rem; background: #f3f4f6; display:flex; align-items:center; justify-content:center; color:#9ca3af; font-size:.9rem; }
+  .coord-hint { background:#eff6ff; border:1px solid #bfdbfe; border-radius:6px; padding:.7rem 1rem; font-size:.83rem; color:#1e40af; margin-bottom:1rem; }
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-header"><div class="container"><h1><i class="bi bi-geo-alt me-2"></i>{{ title }}</h1></div></div>
+<div class="container pb-5">
+  <div class="row justify-content-center"><div class="col-lg-7">
+
+    <!-- Map tip -->
+    <div class="coord-hint mb-3">
+      <i class="bi bi-lightbulb me-2"></i>
+      <strong>How to get coordinates:</strong> Open
+      <a href="https://maps.google.com" target="_blank">Google Maps</a> →
+      Right-click on the location → Click the coordinates shown to copy them.
+    </div>
+
+    <div class="card-nit p-4">
+      <form method="post" novalidate>
+        {% csrf_token %}
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label fw-500">Location Name *</label>
+            {{ form.name }}
+            <div class="form-text">e.g. Main Building, Computer Lab, Workshop, Library</div>
+            {% if form.name.errors %}<div class="text-danger small">{{ form.name.errors.0 }}</div>{% endif %}
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-500">Latitude *</label>
+            {{ form.latitude }}
+            <div class="form-text">e.g. 17.4239</div>
+            {% if form.latitude.errors %}<div class="text-danger small">{{ form.latitude.errors.0 }}</div>{% endif %}
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-500">Longitude *</label>
+            {{ form.longitude }}
+            <div class="form-text">e.g. 78.4738</div>
+            {% if form.longitude.errors %}<div class="text-danger small">{{ form.longitude.errors.0 }}</div>{% endif %}
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-500">Radius (meters) *</label>
+            {{ form.radius_meters }}
+            <div class="form-text">Students must be within this radius. Recommended: 30–100m</div>
+          </div>
+          <div class="col-md-6 d-flex align-items-end pb-1">
+            <button type="button" class="btn btn-outline-secondary w-100" onclick="previewOnMap()">
+              <i class="bi bi-map me-1"></i>Preview on Google Maps
+            </button>
+          </div>
+          <div class="col-12">
+            <div class="form-check">
+              {{ form.is_active }}
+              <label class="form-check-label fw-500">Active (students can mark attendance here)</label>
+            </div>
+          </div>
+          <!-- Use My Location Button -->
+          <div class="col-12">
+            <button type="button" class="btn btn-outline-primary btn-sm" onclick="useMyLocation()">
+              <i class="bi bi-crosshair me-1"></i>Use My Current Location
+            </button>
+            <span class="text-muted small ms-2" id="loc-status"></span>
+          </div>
+        </div>
+        <div class="d-flex justify-content-between mt-4">
+          <a href="{% url 'admin_location_list' %}" class="btn btn-outline-secondary">Cancel</a>
+          <button type="submit" class="btn btn-nit-red px-5"><i class="bi bi-save me-1"></i>Save Location</button>
+        </div>
+      </form>
+    </div>
+  </div></div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+function useMyLocation() {
+  const status = document.getElementById('loc-status');
+  status.textContent = 'Getting location...';
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      document.getElementById('id_latitude').value  = pos.coords.latitude.toFixed(6);
+      document.getElementById('id_longitude').value = pos.coords.longitude.toFixed(6);
+      status.textContent = '✅ Location filled in!';
+      status.style.color = '#16a34a';
+    },
+    err => {
+      status.textContent = '❌ Could not get location: ' + err.message;
+      status.style.color = '#dc2626';
+    },
+    {enableHighAccuracy: true}
+  );
+}
+function previewOnMap() {
+  const lat = document.getElementById('id_latitude').value;
+  const lon = document.getElementById('id_longitude').value;
+  if (!lat || !lon) { alert('Enter latitude and longitude first.'); return; }
+  window.open(`https://www.google.com/maps?q=${lat},${lon}&z=18`, '_blank');
+}
+</script>
+{% endblock %}

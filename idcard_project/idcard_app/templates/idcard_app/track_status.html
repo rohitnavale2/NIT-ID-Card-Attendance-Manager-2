@@ -1,0 +1,139 @@
+{% extends "idcard_app/base.html" %}
+{% block title %}Request Status — NIT{% endblock %}
+
+{% block extra_css %}
+<style>
+  .status-timeline { position: relative; padding-left: 2rem; }
+  .status-timeline::before {
+    content: ''; position: absolute; left: .65rem; top: 0; bottom: 0;
+    width: 2px; background: #e5e7eb;
+  }
+  .timeline-step { position: relative; margin-bottom: 1.5rem; }
+  .timeline-step .dot {
+    position: absolute; left: -1.68rem; top: .15rem;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: #e5e7eb;
+    border: 3px solid #fff;
+    box-shadow: 0 0 0 2px #e5e7eb;
+  }
+  .timeline-step.done .dot { background: #16a34a; box-shadow: 0 0 0 2px #16a34a; }
+  .timeline-step.active .dot { background: var(--nit-yellow); box-shadow: 0 0 0 2px var(--nit-yellow); }
+  .timeline-step.rejected .dot { background: #dc2626; box-shadow: 0 0 0 2px #dc2626; }
+  .timeline-step h6 { font-weight: 700; margin-bottom: .2rem; }
+  .timeline-step p { color: #6b7280; font-size: .85rem; margin: 0; }
+  .card-download-area {
+    background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+    border: 1px solid #bbf7d0;
+    border-radius: 12px;
+    padding: 1.5rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="container">
+    <h1><i class="bi bi-clipboard-check me-2"></i>Application Status</h1>
+    <p>Track your ID card request progress</p>
+  </div>
+</div>
+
+<div class="container pb-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-7">
+
+      <!-- Status Card -->
+      <div class="card-nit p-4 mb-4">
+        <div class="d-flex justify-content-between align-items-start mb-3">
+          <div>
+            <h5 class="fw-bold mb-1">{{ request_obj.student_name }}</h5>
+            <p class="text-muted small mb-0">{{ request_obj.course_name }} &nbsp;•&nbsp; Roll: {{ request_obj.roll_number }}</p>
+          </div>
+          <span class="status-badge badge-{{ request_obj.status }}">
+            {% if request_obj.status == 'pending' %}<i class="bi bi-clock me-1"></i>
+            {% elif request_obj.status == 'approved' %}<i class="bi bi-check me-1"></i>
+            {% elif request_obj.status == 'generated' %}<i class="bi bi-credit-card me-1"></i>
+            {% else %}<i class="bi bi-x me-1"></i>{% endif %}
+            {{ request_obj.get_status_display }}
+          </span>
+        </div>
+        <div class="row g-2 text-sm" style="font-size:.85rem;color:#6b7280">
+          <div class="col-6"><i class="bi bi-calendar3 me-1"></i>Submitted: {{ request_obj.submitted_at|date:"d M Y, g:i A" }}</div>
+          <div class="col-6"><i class="bi bi-hash me-1"></i>Request ID: #{{ request_obj.pk }}</div>
+        </div>
+      </div>
+
+      <!-- Timeline -->
+      <div class="card-nit p-4 mb-4">
+        <h6 class="fw-bold mb-3">Progress</h6>
+        <div class="status-timeline">
+          <div class="timeline-step done">
+            <div class="dot"></div>
+            <h6>Application Submitted</h6>
+            <p>{{ request_obj.submitted_at|date:"d M Y, g:i A" }}</p>
+          </div>
+          <div class="timeline-step {% if request_obj.status != 'pending' %}done{% else %}active{% endif %}">
+            <div class="dot"></div>
+            <h6>Under Review</h6>
+            <p>Admin is reviewing your receipt and details</p>
+          </div>
+          {% if request_obj.status == 'rejected' %}
+          <div class="timeline-step rejected">
+            <div class="dot"></div>
+            <h6>Rejected</h6>
+            <p>{% if request_obj.rejection_reason %}{{ request_obj.rejection_reason }}{% else %}Please contact the institute for details.{% endif %}</p>
+          </div>
+          {% else %}
+          <div class="timeline-step {% if request_obj.status in 'approved,generated' %}done{% endif %}">
+            <div class="dot"></div>
+            <h6>Approved</h6>
+            <p>{% if request_obj.approved_at %}{{ request_obj.approved_at|date:"d M Y, g:i A" }}{% else %}Pending admin approval{% endif %}</p>
+          </div>
+          <div class="timeline-step {% if request_obj.status == 'generated' %}done{% endif %}">
+            <div class="dot"></div>
+            <h6>ID Card Generated</h6>
+            <p>{% if request_obj.status == 'generated' %}Your card is ready to download!{% else %}Will be generated after approval{% endif %}</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Download (if generated) -->
+      {% if request_obj.status == 'generated' %}
+      <div class="card-download-area mb-4">
+        <h6 class="fw-bold mb-3"><i class="bi bi-download me-2 text-success"></i>Your ID Card is Ready!</h6>
+        <div class="d-flex flex-wrap gap-3">
+          {% if request_obj.generated_card_png %}
+          <a href="{% url 'download_card' request_obj.pk 'png' %}" class="btn btn-success px-4">
+            <i class="bi bi-image me-2"></i>Download PNG
+          </a>
+          {% endif %}
+          {% if request_obj.generated_card_pdf %}
+          <a href="{% url 'download_card' request_obj.pk 'pdf' %}" class="btn btn-primary px-4">
+            <i class="bi bi-file-pdf me-2"></i>Download PDF
+          </a>
+          {% endif %}
+        </div>
+        {% if request_obj.generated_card_png %}
+        <div class="mt-3">
+          <img src="{{ request_obj.generated_card_png.url }}" alt="ID Card"
+               style="max-width:100%;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.12)">
+        </div>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      <div class="text-center">
+        <a href="{% url 'home' %}" class="btn btn-outline-secondary me-2">
+          <i class="bi bi-house me-1"></i>Home
+        </a>
+        <a href="{% url 'track_by_roll' %}" class="btn btn-outline-secondary">
+          <i class="bi bi-search me-1"></i>Track Another Request
+        </a>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

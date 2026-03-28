@@ -1,0 +1,123 @@
+{% extends "idcard_app/base.html" %}
+{% block title %}Analytics — {{ student.get_display_name }}{% endblock %}
+{% block extra_css %}
+<style>
+  .stat-kpi { background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:1.2rem; text-align:center; }
+  .stat-kpi .num { font-family:'Rajdhani',sans-serif; font-size:2rem; font-weight:700; }
+  .subj-bar { height:8px; background:#e5e7eb; border-radius:4px; }
+  .subj-fill { height:100%; border-radius:4px; }
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="container d-flex justify-content-between align-items-center">
+    <div>
+      <h1><i class="bi bi-person-lines-fill me-2"></i>{{ student.get_display_name }}</h1>
+      <p>Attendance analytics — {{ student.get_display_roll }}</p>
+    </div>
+    <a href="{% url 'analytics_dashboard' %}" class="btn btn-outline-light btn-sm">
+      <i class="bi bi-arrow-left me-1"></i>Back to Analytics
+    </a>
+  </div>
+</div>
+<div class="container pb-5">
+
+  <!-- KPIs -->
+  <div class="row g-3 mb-4">
+    <div class="col-3"><div class="stat-kpi">
+      <div class="num">{{ total }}</div><div class="text-muted small">Classes</div>
+    </div></div>
+    <div class="col-3"><div class="stat-kpi">
+      <div class="num" style="color:#16a34a">{{ present }}</div><div class="text-muted small">Present</div>
+    </div></div>
+    <div class="col-3"><div class="stat-kpi">
+      <div class="num" style="color:#d97706">{{ late }}</div><div class="text-muted small">Late</div>
+    </div></div>
+    <div class="col-3"><div class="stat-kpi">
+      <div class="num" style="color:{% if pct >= 75 %}#16a34a{% elif pct >= 50 %}#d97706{% else %}#dc2626{% endif %}">
+        {{ pct }}%
+      </div>
+      <div class="text-muted small">Attendance %</div>
+    </div></div>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-lg-6">
+      <!-- Subject chart -->
+      <div class="card-nit p-4 mb-4">
+        <h6 class="fw-bold mb-3" style="color:var(--nit-red)"><i class="bi bi-bar-chart me-2"></i>Subject-wise</h6>
+        <canvas id="subjChart" height="200"></canvas>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <!-- Subject breakdown table -->
+      <div class="card-nit p-4 mb-4">
+        <h6 class="fw-bold mb-3" style="color:var(--nit-red)"><i class="bi bi-list-check me-2"></i>Breakdown</h6>
+        {% for s in subject_data %}
+        <div class="mb-2">
+          <div class="d-flex justify-content-between align-items-center mb-1" style="font-size:.85rem">
+            <span class="fw-500">{{ s.schedule__subject }}</span>
+            <span class="text-muted">{{ s.present_count }}/{{ s.total }}</span>
+          </div>
+          <div class="subj-bar">
+            <div class="subj-fill"
+                 style="width:{% if s.total > 0 %}{% widthratio s.present_count s.total 100 %}{% else %}0{% endif %}%;
+                        background:{% if s.total > 0 %}{% widthratio s.present_count s.total 100 %}{% else %}0{% endif %}|floatformat:0 >= 75 ? '#16a34a' : '#d97706'">
+            </div>
+          </div>
+        </div>
+        {% empty %}
+        <p class="text-muted small">No subject data.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Records table -->
+  <div class="card-nit overflow-hidden">
+    <table class="table table-nit table-hover mb-0" style="font-size:.87rem">
+      <thead><tr><th>Date</th><th>Subject</th><th>Teacher</th><th>Location</th><th>Time</th><th>Distance</th><th>Status</th></tr></thead>
+      <tbody>
+        {% for r in records %}
+        <tr>
+          <td>{{ r.date|date:"d M Y" }}</td>
+          <td class="fw-500">{{ r.schedule.subject }}</td>
+          <td>{{ r.schedule.teacher.name|default:"—" }}</td>
+          <td>{{ r.schedule.location.name|default:"—" }}</td>
+          <td>{{ r.marked_at|time:"h:i A" }}</td>
+          <td class="text-muted">{{ r.distance_m|floatformat:0 }}m</td>
+          <td>
+            <span class="status-badge badge-{% if r.status == 'present' %}approved{% elif r.status == 'late' %}pending{% else %}rejected{% endif %}">
+              {{ r.get_status_display }}
+            </span>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="text-center py-3 text-muted">No records.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+</div>
+{% endblock %}
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+new Chart(document.getElementById('subjChart'), {
+  type: 'bar',
+  data: {
+    labels:   {{ subj_labels|safe }},
+    datasets: [
+      { label:'Present', data:{{ subj_present|safe }}, backgroundColor:'rgba(22,163,74,.8)', borderRadius:4 },
+      { label:'Total',   data:{{ subj_total|safe }},   backgroundColor:'rgba(185,28,28,.25)', borderRadius:4 },
+    ]
+  },
+  options: {
+    responsive:true,
+    plugins:{ legend:{ position:'top' } },
+    scales:{ y:{ beginAtZero:true, ticks:{ stepSize:1 } } }
+  }
+});
+</script>
+{% endblock %}

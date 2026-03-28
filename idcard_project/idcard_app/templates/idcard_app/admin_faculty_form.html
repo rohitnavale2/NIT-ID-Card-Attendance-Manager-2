@@ -1,0 +1,30 @@
+{% extends "idcard_app/base.html" %}
+{% block title %}{{ title }} — Admin{% endblock %}
+{% block content %}
+<div class="page-header"><div class="container"><h1><i class="bi bi-person-badge me-2"></i>{{ title }}</h1></div></div>
+<div class="container pb-5">
+  <div class="row justify-content-center"><div class="col-lg-6">
+    <div class="card-nit p-4">
+      <form method="post" enctype="multipart/form-data" novalidate>
+        {% csrf_token %}
+        <div class="row g-3">
+          <div class="col-12"><label class="form-label fw-500">Full Name *</label>{{ form.name }}</div>
+          <div class="col-12"><label class="form-label fw-500">Designation</label>{{ form.designation }}</div>
+          <div class="col-md-6"><label class="form-label fw-500">Email</label>{{ form.email }}</div>
+          <div class="col-md-6"><label class="form-label fw-500">Phone</label>{{ form.phone }}</div>
+          <div class="col-12"><label class="form-label fw-500">Photo</label>{{ form.photo }}</div>
+          <div class="col-12">
+            <div class="form-check">{{ form.is_active }}
+              <label class="form-check-label fw-500" for="id_is_active">Active</label>
+            </div>
+          </div>
+        </div>
+        <div class="d-flex justify-content-between mt-4">
+          <a href="{% url 'admin_faculty_list' %}" class="btn btn-outline-secondary">Cancel</a>
+          <button type="submit" class="btn btn-nit-red px-5"><i class="bi bi-save me-1"></i>Save</button>
+        </div>
+      </form>
+    </div>
+  </div></div>
+</div>
+{% endblock %}

@@ -1,0 +1,340 @@
+{% extends "idcard_app/base.html" %}
+{% block title %}Today's Classes — {{ student.get_display_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .class-card {
+    background:#fff; border:1px solid #e5e7eb; border-radius:12px;
+    padding:1.3rem 1.5rem; margin-bottom:1rem;
+    transition:box-shadow .2s;
+    position:relative; overflow:hidden;
+  }
+  .class-card:hover { box-shadow:0 6px 20px rgba(0,0,0,.08); }
+  .class-card.live   { border-left:5px solid #16a34a; }
+  .class-card.past   { opacity:.65; }
+  .class-card.future { border-left:5px solid #d97706; }
+  .class-card.done   { border-left:5px solid #2563eb; }
+  .window-bar {
+    height:6px; background:#e5e7eb; border-radius:3px; margin:10px 0;
+  }
+  .window-fill { height:100%; border-radius:3px; background:#16a34a; }
+  .time-badge {
+    font-family:'Rajdhani',sans-serif; font-weight:700; font-size:1.05rem;
+    color:var(--nit-red);
+  }
+  .fp-btn-sm {
+    width:56px; height:56px; border-radius:50%;
+    background:var(--nit-red); border:none; color:#fff;
+    font-size:1.5rem; cursor:pointer;
+    transition:transform .15s, box-shadow .15s;
+    box-shadow:0 4px 12px rgba(185,28,28,.3);
+  }
+  .fp-btn-sm:hover  { transform:scale(1.08); }
+  .fp-btn-sm:active { transform:scale(.95); }
+  .fp-btn-sm:disabled { background:#9ca3af; box-shadow:none; cursor:not-allowed; }
+  .result-inline {
+    border-radius:8px; padding:.7rem 1rem;
+    font-size:.88rem; font-weight:600;
+    display:none; margin-top:.6rem;
+  }
+  .result-ok  { background:#dcfce7; color:#14532d; }
+  .result-err { background:#fee2e2; color:#7f1d1d; }
+  .countdown  { font-size:.8rem; color:#d97706; font-weight:600; }
+  .gps-mini-status { font-size:.78rem; font-weight:600; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="container d-flex justify-content-between align-items-center">
+    <div>
+      <h1><i class="bi bi-calendar-week me-2"></i>Today's Classes</h1>
+      <p>{{ today|date:"l, d F Y" }} &nbsp;•&nbsp; {{ student.get_display_name }}</p>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{% url 'schedule_history' %}" class="btn btn-outline-light btn-sm">
+        <i class="bi bi-clock-history me-1"></i>History
+      </a>
+      <a href="{% url 'attendance_mark' %}" class="btn btn-outline-light btn-sm">
+        <i class="bi bi-fingerprint me-1"></i>Free Attendance
+      </a>
+      <a href="{% url 'attendance_logout' %}" class="btn btn-outline-light btn-sm">
+        <i class="bi bi-box-arrow-right me-1"></i>Logout
+      </a>
+    </div>
+  </div>
+</div>
+
+<div class="container pb-5">
+  <div class="row g-4">
+
+    <!-- Left: Class cards -->
+    <div class="col-lg-8">
+
+      {% if not student.batch %}
+      <div class="alert alert-warning">
+        <i class="bi bi-exclamation-triangle me-2"></i>
+        You are not assigned to any batch. Contact admin.
+      </div>
+      {% elif not schedule_data %}
+      <div class="text-center py-5 text-muted card-nit p-5">
+        <i class="bi bi-calendar-x" style="font-size:2.5rem;display:block;margin-bottom:.8rem"></i>
+        No classes scheduled for today ({{ today|date:"l" }}).
+        <br><span class="small">Check back on your next class day.</span>
+      </div>
+      {% else %}
+
+      {% for item in schedule_data %}
+      {% with s=item.schedule %}
+      <div class="class-card {% if item.already %}done{% elif item.is_open %}live{% elif item.is_future %}future{% else %}past{% endif %}"
+           id="card-{{ s.pk }}">
+
+        <!-- Status ribbon -->
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <div>
+            <span class="fw-bold fs-6">{{ s.subject }}</span>
+            {% if item.is_open and not item.already %}
+            <span class="ms-2" style="background:#dcfce7;color:#14532d;border-radius:20px;padding:2px 10px;font-size:.75rem;font-weight:700">
+              <span style="width:7px;height:7px;border-radius:50%;background:#16a34a;display:inline-block;animation:blink 1s infinite"></span>
+              Open Now
+            </span>
+            {% elif item.is_future %}
+            <span class="ms-2" style="background:#fef9c3;color:#713f12;border-radius:20px;padding:2px 10px;font-size:.75rem;font-weight:700">Upcoming</span>
+            {% elif item.is_past and not item.already %}
+            <span class="ms-2" style="background:#fee2e2;color:#7f1d1d;border-radius:20px;padding:2px 10px;font-size:.75rem;font-weight:700">Missed</span>
+            {% endif %}
+          </div>
+          <span class="time-badge">{{ s.start_time|time:"h:i A" }} – {{ s.end_time|time:"h:i A" }}</span>
+        </div>
+
+        <!-- Class info -->
+        <div class="d-flex flex-wrap gap-3 text-muted small mb-2">
+          <span><i class="bi bi-people me-1"></i>{{ s.batch.batch_code }}</span>
+          {% if s.teacher %}<span><i class="bi bi-person me-1"></i>{{ s.teacher.name }}</span>{% endif %}
+          {% if s.location %}<span><i class="bi bi-building me-1"></i>{{ s.location.name }}
+            <small>({{ s.location.radius_meters }}m radius)</small></span>{% endif %}
+        </div>
+
+        <!-- Already marked -->
+        {% if item.already and item.att_record %}
+        <div class="result-inline result-ok" style="display:flex;align-items:center;gap:.5rem">
+          <i class="bi bi-check-circle-fill"></i>
+          Attendance marked at {{ item.att_record.marked_at|time:"h:i A" }} —
+          <strong>{{ item.att_record.get_status_display }}</strong>
+          &nbsp;|&nbsp; {{ item.att_record.distance_m|floatformat:0 }}m from {{ s.location.name }}
+        </div>
+
+        <!-- Open for marking -->
+        {% elif item.is_open %}
+        <div class="d-flex align-items-center gap-3 mt-2">
+          <!-- GPS capture -->
+          <div>
+            <div class="gps-mini-status text-warning" id="gps-status-{{ s.pk }}">
+              <i class="bi bi-geo-alt me-1"></i>GPS not captured
+            </div>
+            <button class="btn btn-outline-secondary btn-sm mt-1"
+                    onclick="captureGPS({{ s.pk }}, {{ s.location.pk }},
+                             {{ s.location.latitude }}, {{ s.location.longitude }},
+                             {{ s.location.radius_meters }})">
+              <i class="bi bi-crosshair me-1"></i>Get GPS
+            </button>
+          </div>
+          <!-- Fingerprint button -->
+          <div class="text-center">
+            <button class="fp-btn-sm" id="fp-{{ s.pk }}"
+                    onclick="markScheduleAttendance({{ s.pk }})"
+                    disabled title="Tap after GPS verified">
+              👆
+            </button>
+            <div class="text-muted" style="font-size:.7rem;margin-top:.3rem">Fingerprint</div>
+          </div>
+          <div class="flex-grow-1">
+            <div class="result-inline" id="result-{{ s.pk }}"></div>
+          </div>
+        </div>
+
+        <!-- Future class -->
+        {% elif item.is_future %}
+        <div class="countdown" id="countdown-{{ s.pk }}"
+             data-start="{{ s.start_time|time:'H:i' }}">
+          <i class="bi bi-hourglass-split me-1"></i>Starts in ...
+        </div>
+
+        <!-- Past / missed -->
+        {% else %}
+        <div class="text-muted small"><i class="bi bi-x-circle me-1"></i>Attendance window closed</div>
+        {% endif %}
+
+      </div>
+      {% endwith %}
+      {% endfor %}
+
+      {% endif %}
+    </div>
+
+    <!-- Right: Student Info -->
+    <div class="col-lg-4">
+      <div class="card-nit p-4 mb-3">
+        <h6 class="fw-bold mb-3" style="color:var(--nit-red)"><i class="bi bi-person me-2"></i>Student</h6>
+        <div class="text-sm" style="font-size:.88rem">
+          <div class="mb-1"><span class="text-muted">Name:</span> <strong>{{ student.get_display_name }}</strong></div>
+          <div class="mb-1"><span class="text-muted">Roll:</span> {{ student.get_display_roll }}</div>
+          <div class="mb-1"><span class="text-muted">Course:</span> {{ student.get_display_course }}</div>
+          <div><span class="text-muted">Batch:</span> {{ student.get_display_batch|default:"—" }}</div>
+        </div>
+      </div>
+      <div class="card-nit p-4">
+        <h6 class="fw-bold mb-2"><i class="bi bi-info-circle me-2"></i>Attendance Rules</h6>
+        <ul class="text-muted small ps-3" style="line-height:1.9">
+          <li>Mark only during class window</li>
+          <li>Must be inside building radius</li>
+          <li>Fingerprint required</li>
+          <li>Within 10 min of start = Present</li>
+          <li>After 10 min = Late</li>
+          <li>One mark per class per day</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// GPS state per schedule card
+const gpsData = {};
+
+function captureGPS(scheduleId, locId, locLat, locLon, radius) {
+  const statusEl = document.getElementById(`gps-status-${scheduleId}`);
+  const fpBtn    = document.getElementById(`fp-${scheduleId}`);
+  statusEl.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Getting GPS...';
+  statusEl.style.color = '#d97706';
+
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const lat = pos.coords.latitude;
+      const lon = pos.coords.longitude;
+      const dist = haversine(locLat, locLon, lat, lon);
+      const distR = Math.round(dist);
+      gpsData[scheduleId] = {lat, lon, locId, dist: distR};
+
+      if (dist <= radius) {
+        statusEl.innerHTML = `<i class="bi bi-check-circle-fill me-1"></i>✅ ${distR}m — Inside range`;
+        statusEl.style.color = '#16a34a';
+        fpBtn.disabled = false;
+      } else {
+        statusEl.innerHTML = `<i class="bi bi-x-circle me-1"></i>❌ ${distR}m — Too far (max ${radius}m)`;
+        statusEl.style.color = '#dc2626';
+        fpBtn.disabled = true;
+      }
+    },
+    err => {
+      statusEl.innerHTML = `<i class="bi bi-x-circle me-1"></i>GPS error: ${err.message}`;
+      statusEl.style.color = '#dc2626';
+    },
+    {enableHighAccuracy: true, timeout:10000}
+  );
+}
+
+async function markScheduleAttendance(scheduleId) {
+  const gps = gpsData[scheduleId];
+  if (!gps) { showResult(scheduleId, 'err', 'Capture GPS first.'); return; }
+
+  const fpBtn = document.getElementById(`fp-${scheduleId}`);
+  fpBtn.disabled = true;
+  fpBtn.textContent = '⏳';
+
+  // Step 1: WebAuthn auth begin
+  let credentialId = '';
+  try {
+    const beginResp = await fetch("{% url 'webauthn_auth_begin' %}", {
+      method:'POST', headers:{'X-CSRFToken': getCsrf()}
+    });
+    const opts = await beginResp.json();
+
+    if (opts.error) {
+      // No biometric registered — allow without fingerprint (GPS-only fallback)
+      credentialId = '';
+    } else {
+      opts.challenge = base64urlToBuffer(opts.challenge);
+      if (opts.allowCredentials) {
+        opts.allowCredentials = opts.allowCredentials.map(c => ({...c, id: base64urlToBuffer(c.id)}));
+      }
+      const assertion = await navigator.credentials.get({publicKey: opts});
+      credentialId = assertion.id;
+    }
+  } catch(e) {
+    if (e.name === 'NotAllowedError') {
+      showResult(scheduleId, 'err', '❌ Fingerprint cancelled.');
+      fpBtn.disabled = false; fpBtn.textContent = '👆'; return;
+    }
+    credentialId = ''; // fallback GPS-only
+  }
+
+  // Step 2: Mark attendance
+  try {
+    const resp = await fetch("{% url 'schedule_mark_attendance' %}", {
+      method:  'POST',
+      headers: {'Content-Type':'application/json', 'X-CSRFToken': getCsrf()},
+      body: JSON.stringify({
+        schedule_id:   scheduleId,
+        latitude:      gps.lat,
+        longitude:     gps.lon,
+        credential_id: credentialId,
+      }),
+    });
+    const data = await resp.json();
+
+    if (data.status === 'ok') {
+      showResult(scheduleId, 'ok',
+        `✅ ${data.message} | ${data.att_status.toUpperCase()} | ${data.distance}m`);
+      setTimeout(() => location.reload(), 2500);
+    } else {
+      showResult(scheduleId, 'err', '❌ ' + (data.error || 'Failed'));
+      fpBtn.disabled = false; fpBtn.textContent = '👆';
+    }
+  } catch(e) {
+    showResult(scheduleId, 'err', '❌ Network error: ' + e.message);
+    fpBtn.disabled = false; fpBtn.textContent = '👆';
+  }
+}
+
+function showResult(scheduleId, type, msg) {
+  const el = document.getElementById(`result-${scheduleId}`);
+  el.className = `result-inline result-${type}`;
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+// Haversine client-side
+function haversine(lat1,lon1,lat2,lon2){
+  const R=6371000,p1=lat1*Math.PI/180,p2=lat2*Math.PI/180,
+        dp=(lat2-lat1)*Math.PI/180,dl=(lon2-lon1)*Math.PI/180,
+        a=Math.sin(dp/2)**2+Math.cos(p1)*Math.cos(p2)*Math.sin(dl/2)**2;
+  return 2*R*Math.asin(Math.sqrt(a));
+}
+
+function getCsrf(){return document.cookie.match(/csrftoken=([^;]+)/)?.[1]||'';}
+
+function base64urlToBuffer(b64){
+  const s=(b64+'===').slice(0,b64.length+(4-b64.length%4)%4).replace(/-/g,'+').replace(/_/g,'/');
+  const bin=atob(s);const buf=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++)buf[i]=bin.charCodeAt(i);return buf.buffer;
+}
+
+// Countdown timers for future classes
+document.querySelectorAll('[id^="countdown-"]').forEach(el => {
+  const schedId = el.id.replace('countdown-','');
+  const [h,m] = el.dataset.start.split(':').map(Number);
+  function tick(){
+    const now=new Date();const start=new Date();
+    start.setHours(h,m,0,0);
+    const diff=Math.max(0,Math.round((start-now)/60000));
+    el.innerHTML = diff > 0
+      ? `<i class="bi bi-hourglass-split me-1"></i>Starts in ${diff} min`
+      : `<i class="bi bi-play-circle me-1"></i>Starting now — refresh page`;
+  }
+  tick(); setInterval(tick, 30000);
+});
+</script>
+{% endblock %}

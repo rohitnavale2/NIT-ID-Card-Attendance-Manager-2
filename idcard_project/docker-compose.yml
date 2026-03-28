@@ -1,0 +1,25 @@
+version: "3.9"
+
+services:
+  web:
+    build: .
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py shell -c \"
+from django.contrib.auth import get_user_model;
+User = get_user_model();
+User.objects.filter(username='admin').exists() or User.objects.create_superuser('admin','admin@nareshit.com','admin123')
+             \" &&
+             python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - .:/app
+      - media_data:/app/media
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - DJANGO_SETTINGS_MODULE=idcard_project.settings
+
+volumes:
+  media_data:

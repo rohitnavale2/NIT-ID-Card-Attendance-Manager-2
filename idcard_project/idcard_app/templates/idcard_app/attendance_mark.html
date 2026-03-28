@@ -1,0 +1,444 @@
+{% extends "idcard_app/base.html" %}
+{% block title %}Mark Attendance — {{ student.get_display_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .att-card { background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:1.5rem; margin-bottom:1rem; }
+  .step-circle {
+    width:48px; height:48px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:1.4rem; font-weight:700; flex-shrink:0;
+    background:#f3f4f6; color:#6b7280;
+  }
+  .step-circle.active { background:#b91c1c; color:#fff; }
+  .step-circle.done   { background:#16a34a; color:#fff; }
+  .step-row { display:flex; gap:1rem; align-items:flex-start; margin-bottom:1.2rem; }
+  .gps-status {
+    padding:.8rem 1rem; border-radius:8px;
+    font-size:.9rem; font-weight:600;
+    display:flex; align-items:center; gap:.5rem;
+  }
+  .gps-ok   { background:#dcfce7; color:#14532d; }
+  .gps-bad  { background:#fee2e2; color:#7f1d1d; }
+  .gps-wait { background:#fef9c3; color:#713f12; }
+  .location-card {
+    border:2px solid #e5e7eb; border-radius:10px; padding:1rem;
+    cursor:pointer; transition:border-color .2s, background .2s;
+    margin-bottom:.6rem;
+  }
+  .location-card:has(input:checked) { border-color:#b91c1c; background:#fef2f2; }
+  .location-card input { accent-color:#b91c1c; }
+  .fp-btn {
+    width:120px; height:120px; border-radius:50%;
+    background:linear-gradient(135deg,#b91c1c,#7f1d1d);
+    border:none; color:#fff; font-size:2.8rem;
+    display:flex; align-items:center; justify-content:center;
+    margin:0 auto; cursor:pointer;
+    transition:transform .2s, box-shadow .2s;
+    box-shadow:0 8px 24px rgba(185,28,28,.35);
+  }
+  .fp-btn:hover { transform:scale(1.05); box-shadow:0 12px 32px rgba(185,28,28,.45); }
+  .fp-btn:active { transform:scale(.97); }
+  .fp-btn:disabled { background:#9ca3af; cursor:not-allowed; box-shadow:none; transform:none; }
+  .result-box { border-radius:10px; padding:1.2rem; text-align:center; display:none; }
+  .result-ok  { background:#dcfce7; border:1px solid #bbf7d0; color:#14532d; }
+  .result-err { background:#fee2e2; border:1px solid #fecaca; color:#7f1d1d; }
+  .att-history-row { display:flex; justify-content:space-between; align-items:center; padding:.5rem 0; border-bottom:1px solid #f3f4f6; font-size:.88rem; }
+  .att-history-row:last-child { border:none; }
+  @keyframes pulse-ring { 0%{transform:scale(1);opacity:1} 100%{transform:scale(1.4);opacity:0} }
+  .fp-btn.scanning::after {
+    content:''; position:absolute;
+    width:120px; height:120px; border-radius:50%;
+    border:3px solid #b91c1c; animation:pulse-ring 1s infinite;
+  }
+  .fp-wrap { position:relative; display:flex; justify-content:center; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="container d-flex justify-content-between align-items-center">
+    <div>
+      <h1><i class="bi bi-fingerprint me-2"></i>Mark Attendance</h1>
+      <p>Welcome, <strong>{{ student.get_display_name }}</strong> — {{ student.get_display_roll }}</p>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{% url 'attendance_history' %}" class="btn btn-outline-light btn-sm">
+        <i class="bi bi-clock-history me-1"></i>History
+      </a>
+      <a href="{% url 'attendance_logout' %}" class="btn btn-outline-light btn-sm">
+        <i class="bi bi-box-arrow-right me-1"></i>Logout
+      </a>
+    </div>
+  </div>
+</div>
+
+<div class="container pb-5">
+  <div class="row g-4">
+
+    <!-- Left: Mark Attendance -->
+    <div class="col-lg-7">
+
+      <!-- Today's record -->
+      {% if today_records %}
+      <div class="att-card" style="border-left:4px solid #16a34a">
+        <h6 class="fw-bold mb-2" style="color:#16a34a"><i class="bi bi-check-circle me-2"></i>Today's Attendance</h6>
+        {% for r in today_records %}
+        <div class="att-history-row">
+          <span><strong>{{ r.location.name }}</strong></span>
+          <span class="text-muted">{{ r.time|time:"h:i A" }}</span>
+          <span class="status-badge badge-{% if r.status == 'present' %}approved{% elif r.status == 'late' %}pending{% else %}rejected{% endif %}">
+            {{ r.get_status_display }}
+          </span>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <!-- Step 1: Select Location -->
+      <div class="att-card">
+        <div class="step-row">
+          <div class="step-circle active" id="step1-circle">1</div>
+          <div>
+            <h6 class="fw-bold mb-1">Select Building / Location</h6>
+            <p class="text-muted small mb-0">Choose where you are right now</p>
+          </div>
+        </div>
+        {% if locations %}
+        <div id="location-list">
+          {% for loc in locations %}
+          <label class="location-card d-block">
+            <input type="radio" name="location" value="{{ loc.pk }}"
+                   data-lat="{{ loc.latitude }}" data-lon="{{ loc.longitude }}"
+                   data-radius="{{ loc.radius_meters }}" data-name="{{ loc.name }}">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <div class="fw-bold">{{ loc.name }}</div>
+                <div class="text-muted small">
+                  <i class="bi bi-geo-alt me-1"></i>{{ loc.latitude|floatformat:4 }}, {{ loc.longitude|floatformat:4 }}
+                  &nbsp;•&nbsp; Radius: {{ loc.radius_meters }}m
+                </div>
+              </div>
+              <i class="bi bi-building" style="font-size:1.5rem;color:#9ca3af"></i>
+            </div>
+          </label>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="alert alert-warning">No locations defined. Ask admin to add attendance locations.</div>
+        {% endif %}
+      </div>
+
+      <!-- Step 2: GPS Verification -->
+      <div class="att-card">
+        <div class="step-row">
+          <div class="step-circle" id="step2-circle">2</div>
+          <div class="flex-grow-1">
+            <h6 class="fw-bold mb-1">GPS Location Verification</h6>
+            <p class="text-muted small mb-2">Your location must be within the allowed radius</p>
+            <div class="gps-status gps-wait" id="gps-status">
+              <i class="bi bi-geo-alt"></i> <span id="gps-text">Select a location first, then click below</span>
+            </div>
+            <button class="btn btn-outline-secondary btn-sm mt-2" id="gps-btn" onclick="getGPS()">
+              <i class="bi bi-crosshair me-1"></i>Get My Location
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3: Fingerprint -->
+      <div class="att-card text-center">
+        <div class="step-row justify-content-center">
+          <div class="step-circle" id="step3-circle">3</div>
+          <div>
+            <h6 class="fw-bold mb-1">Fingerprint Authentication</h6>
+            <p class="text-muted small mb-0">
+              {% if has_biometric %}Press the button to authenticate{% else %}Register your fingerprint first{% endif %}
+            </p>
+          </div>
+        </div>
+
+        {% if not has_biometric %}
+        <div class="alert alert-info mb-3">
+          <i class="bi bi-info-circle me-2"></i>
+          First time? Register your fingerprint below, then mark attendance.
+        </div>
+        <button class="btn btn-outline-primary mb-3" onclick="registerFingerprint()">
+          <i class="bi bi-fingerprint me-2"></i>Register Fingerprint
+        </button>
+        <br>
+        {% endif %}
+
+        <div class="fp-wrap mb-3">
+          <button class="fp-btn" id="fp-btn" onclick="markAttendance()" {% if not has_biometric %}disabled{% endif %}>
+            👆
+          </button>
+        </div>
+        <p class="text-muted small" id="fp-hint">
+          {% if has_biometric %}Tap the button and authenticate with your fingerprint{% else %}Register fingerprint first{% endif %}
+        </p>
+
+        <!-- Result -->
+        <div class="result-box result-ok"  id="result-ok"></div>
+        <div class="result-box result-err" id="result-err"></div>
+      </div>
+
+    </div>
+
+    <!-- Right: Info Panel -->
+    <div class="col-lg-5">
+
+      <!-- Student Info -->
+      <div class="att-card mb-3">
+        <h6 class="fw-bold mb-3" style="color:var(--nit-red)"><i class="bi bi-person me-2"></i>Student Info</h6>
+        <div class="row g-2" style="font-size:.88rem">
+          <div class="col-6"><span class="text-muted">Name:</span><br><strong>{{ student.get_display_name }}</strong></div>
+          <div class="col-6"><span class="text-muted">Roll No:</span><br><strong>{{ student.get_display_roll }}</strong></div>
+          <div class="col-6"><span class="text-muted">Course:</span><br>{{ student.get_display_course }}</div>
+          <div class="col-6"><span class="text-muted">Batch:</span><br>{{ student.get_display_batch|default:"—" }}</div>
+        </div>
+      </div>
+
+      <!-- How it works -->
+      <div class="att-card">
+        <h6 class="fw-bold mb-3"><i class="bi bi-question-circle me-2"></i>How to Mark Attendance</h6>
+        <ol class="text-muted small ps-3" style="line-height:2">
+          <li>Select your current building</li>
+          <li>Click <strong>Get My Location</strong> to verify GPS</li>
+          <li>Tap the fingerprint button</li>
+          <li>Authenticate using your device biometric</li>
+          <li>Attendance marked automatically!</li>
+        </ol>
+        <div class="alert alert-warning py-2 mb-0" style="font-size:.82rem">
+          <i class="bi bi-shield-check me-1"></i>
+          You must be physically present at the location to mark attendance.
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let studentLat = null, studentLon = null;
+let selectedLocation = null;
+let gpsVerified = false;
+
+// ── Location Selection ──────────────────────────────────────────────────────
+document.querySelectorAll('input[name="location"]').forEach(radio => {
+  radio.addEventListener('change', function() {
+    selectedLocation = {
+      id:     this.value,
+      lat:    parseFloat(this.dataset.lat),
+      lon:    parseFloat(this.dataset.lon),
+      radius: parseFloat(this.dataset.radius),
+      name:   this.dataset.name,
+    };
+    gpsVerified = false;
+    document.getElementById('gps-status').className = 'gps-status gps-wait';
+    document.getElementById('gps-text').textContent = 'Click "Get My Location" to verify';
+    document.getElementById('step2-circle').className = 'step-circle active';
+  });
+});
+
+// ── GPS ─────────────────────────────────────────────────────────────────────
+function getGPS() {
+  if (!selectedLocation) {
+    alert('Please select a location first.');
+    return;
+  }
+  const btn = document.getElementById('gps-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Getting location...';
+
+  if (!navigator.geolocation) {
+    showGPSError('Geolocation not supported by your browser.');
+    btn.disabled = false;
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      studentLat = pos.coords.latitude;
+      studentLon = pos.coords.longitude;
+      const dist = haversine(selectedLocation.lat, selectedLocation.lon, studentLat, studentLon);
+      const distRound = Math.round(dist);
+
+      if (dist <= selectedLocation.radius) {
+        gpsVerified = true;
+        document.getElementById('gps-status').className = 'gps-status gps-ok';
+        document.getElementById('gps-text').textContent =
+          `✅ You are ${distRound}m from ${selectedLocation.name} — Within range!`;
+        document.getElementById('step2-circle').className = 'step-circle done';
+        document.getElementById('step3-circle').className = 'step-circle active';
+        document.getElementById('fp-btn').disabled = false;
+        document.getElementById('fp-hint').textContent = 'Now tap the fingerprint button to authenticate';
+      } else {
+        gpsVerified = false;
+        document.getElementById('gps-status').className = 'gps-status gps-bad';
+        document.getElementById('gps-text').textContent =
+          `❌ You are ${distRound}m away. Must be within ${selectedLocation.radius}m of ${selectedLocation.name}`;
+      }
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-crosshair me-1"></i>Refresh Location';
+    },
+    err => {
+      showGPSError('Could not get location: ' + err.message);
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-crosshair me-1"></i>Try Again';
+    },
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
+}
+
+function showGPSError(msg) {
+  document.getElementById('gps-status').className = 'gps-status gps-bad';
+  document.getElementById('gps-text').textContent = '❌ ' + msg;
+}
+
+// ── Haversine (client-side pre-check) ───────────────────────────────────────
+function haversine(lat1, lon1, lat2, lon2) {
+  const R = 6371000;
+  const p1 = lat1 * Math.PI/180, p2 = lat2 * Math.PI/180;
+  const dp = (lat2-lat1)*Math.PI/180, dl = (lon2-lon1)*Math.PI/180;
+  const a  = Math.sin(dp/2)**2 + Math.cos(p1)*Math.cos(p2)*Math.sin(dl/2)**2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+// ── WebAuthn Register ────────────────────────────────────────────────────────
+async function registerFingerprint() {
+  try {
+    const resp = await fetch("{% url 'webauthn_register_begin' %}", {method:'POST', headers:{'X-CSRFToken': getCsrf()}});
+    const opts = await resp.json();
+
+    opts.challenge  = base64urlToBuffer(opts.challenge);
+    opts.user.id    = base64urlToBuffer(opts.user.id);
+
+    const credential = await navigator.credentials.create({publicKey: opts});
+
+    const regData = {
+      id:   credential.id,
+      type: credential.type,
+      response: {
+        attestationObject: bufferToBase64url(credential.response.attestationObject),
+        clientDataJSON:    bufferToBase64url(credential.response.clientDataJSON),
+      }
+    };
+
+    const completeResp = await fetch("{% url 'webauthn_register_complete' %}", {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','X-CSRFToken':getCsrf()},
+      body: JSON.stringify(regData),
+    });
+    const result = await completeResp.json();
+
+    if (result.status === 'ok') {
+      showResult('ok', '✅ Fingerprint registered! You can now mark attendance.');
+      document.getElementById('fp-btn').disabled = false;
+      document.getElementById('fp-hint').textContent = 'Fingerprint registered! Now tap to mark attendance.';
+    } else {
+      showResult('err', '❌ Registration failed: ' + (result.error || 'Unknown error'));
+    }
+  } catch(e) {
+    if (e.name === 'NotSupportedError' || e.name === 'NotAllowedError') {
+      showResult('err', '❌ Biometric not available on this device/browser. Use Chrome on Android or Safari on iPhone.');
+    } else {
+      showResult('err', '❌ Error: ' + e.message);
+    }
+  }
+}
+
+// ── WebAuthn Authenticate + Mark Attendance ──────────────────────────────────
+async function markAttendance() {
+  if (!selectedLocation) { alert('Please select a location first.'); return; }
+  if (!gpsVerified)       { alert('Please verify your GPS location first.'); return; }
+
+  const btn = document.getElementById('fp-btn');
+  btn.classList.add('scanning');
+  btn.disabled = true;
+
+  try {
+    const resp = await fetch("{% url 'webauthn_auth_begin' %}", {method:'POST', headers:{'X-CSRFToken':getCsrf()}});
+    const opts = await resp.json();
+    if (opts.error) { showResult('err','❌ '+opts.error); btn.classList.remove('scanning'); btn.disabled=false; return; }
+
+    opts.challenge = base64urlToBuffer(opts.challenge);
+    if (opts.allowCredentials) {
+      opts.allowCredentials = opts.allowCredentials.map(c => ({...c, id: base64urlToBuffer(c.id)}));
+    }
+
+    const assertion = await navigator.credentials.get({publicKey: opts});
+
+    const authData = {
+      id:          assertion.id,
+      type:        assertion.type,
+      location_id: selectedLocation.id,
+      latitude:    studentLat,
+      longitude:   studentLon,
+      response: {
+        authenticatorData: bufferToBase64url(assertion.response.authenticatorData),
+        clientDataJSON:    bufferToBase64url(assertion.response.clientDataJSON),
+        signature:         bufferToBase64url(assertion.response.signature),
+      }
+    };
+
+    const completeResp = await fetch("{% url 'webauthn_auth_complete' %}", {
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-CSRFToken':getCsrf()},
+      body: JSON.stringify(authData),
+    });
+    const result = await completeResp.json();
+
+    if (result.status === 'ok') {
+      showResult('ok',
+        `✅ Attendance Marked!<br>
+         <strong>Location:</strong> ${result.location}<br>
+         <strong>Time:</strong> ${result.time}<br>
+         <strong>Status:</strong> ${result.att_status.toUpperCase()}<br>
+         <strong>Distance:</strong> ${result.distance}m from center`
+      );
+      setTimeout(() => location.reload(), 3000);
+    } else {
+      showResult('err','❌ '+(result.error||'Attendance failed'));
+    }
+  } catch(e) {
+    if (e.name === 'NotAllowedError') {
+      showResult('err','❌ Authentication cancelled or fingerprint not recognised.');
+    } else {
+      showResult('err','❌ Error: '+e.message);
+    }
+  }
+  btn.classList.remove('scanning');
+  btn.disabled = false;
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function getCsrf() {
+  return document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
+}
+function base64urlToBuffer(base64url) {
+  const s = (base64url + '===').slice(0, base64url.length + (4 - base64url.length%4)%4)
+              .replace(/-/g,'+').replace(/_/g,'/');
+  const bin = atob(s);
+  const buf = new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) buf[i]=bin.charCodeAt(i);
+  return buf.buffer;
+}
+function bufferToBase64url(buffer) {
+  const bytes = new Uint8Array(buffer);
+  let str = '';
+  bytes.forEach(b => str += String.fromCharCode(b));
+  return btoa(str).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+}
+function showResult(type, msg) {
+  document.getElementById('result-ok').style.display  = 'none';
+  document.getElementById('result-err').style.display = 'none';
+  const el = document.getElementById('result-'+type);
+  el.innerHTML = msg;
+  el.style.display = 'block';
+  el.scrollIntoView({behavior:'smooth',block:'center'});
+}
+</script>
+{% endblock %}

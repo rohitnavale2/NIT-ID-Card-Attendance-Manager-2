@@ -1,0 +1,232 @@
+{% extends "idcard_app/base.html" %}
+{% block title %}NIT ID Card Portal — Home{% endblock %}
+
+{% block extra_css %}
+<style>
+  .hero {
+    background: linear-gradient(135deg, #b91c1c 0%, #7f1d1d 60%, #1c1917 100%);
+    padding: 5rem 0 4rem;
+    color: #fff;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: 'NIT NIT NIT NIT NIT NIT NIT NIT NIT NIT NIT NIT NIT NIT NIT NIT NIT NIT NIT NIT';
+    position: absolute; inset: 0;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 3.5rem; font-weight: 700;
+    color: rgba(255,255,255,.04);
+    word-break: break-all; line-height: 1.2;
+    pointer-events: none; overflow: hidden;
+  }
+  .hero h1 { font-family:'Rajdhani',sans-serif; font-size:3rem; font-weight:700; line-height:1.1; }
+  .hero h1 span { color: var(--nit-yellow); }
+  .hero-badge {
+    display:inline-block; background:rgba(234,179,8,.15);
+    border:1px solid rgba(234,179,8,.4); color:var(--nit-yellow);
+    padding:.4rem 1rem; border-radius:20px; font-size:.85rem;
+    font-weight:600; margin-bottom:1.2rem; letter-spacing:.04em;
+  }
+  .step-card {
+    background:#fff; border:1px solid #e5e7eb; border-radius:12px;
+    padding:1.8rem; text-align:center; height:100%;
+    transition:box-shadow .2s, transform .2s;
+  }
+  .step-card:hover { box-shadow:0 8px 24px rgba(0,0,0,.1); transform:translateY(-3px); }
+  .step-num {
+    width:48px; height:48px; background:var(--nit-red); color:#fff;
+    border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font-family:'Rajdhani',sans-serif; font-size:1.3rem; font-weight:700;
+    margin:0 auto 1rem;
+  }
+  .batch-mini {
+    background:#fff; border:1px solid #e5e7eb; border-radius:10px;
+    padding:1rem 1.2rem; transition:box-shadow .2s;
+  }
+  .batch-mini:hover { box-shadow:0 4px 16px rgba(0,0,0,.08); }
+  .running-dot  { width:10px; height:10px; border-radius:50%; background:#16a34a; display:inline-block; animation:pulse 1.5s infinite; }
+  .upcoming-dot { width:10px; height:10px; border-radius:50%; background:#d97706; display:inline-block; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  .info-strip { background:var(--nit-yellow); padding:1rem 0; }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero -->
+<section class="hero">
+  <div class="container">
+    <div class="row align-items-center">
+      <div class="col-lg-7">
+        <div class="hero-badge"><i class="bi bi-shield-check me-1"></i>Official ID Card Portal</div>
+        <h1>Get Your <span>NIT Student</span><br>ID Card Online</h1>
+        <p class="mt-3 mb-4" style="font-size:1.05rem;opacity:.85;max-width:500px">
+          Submit your details, upload the ₹100 fee receipt, and receive a professional
+          ID card after admin verification — all in one place.
+        </p>
+        <div class="d-flex flex-wrap gap-3">
+          <a href="{% url 'submit_request' %}" class="btn btn-nit-yellow btn-lg px-4">
+            <i class="bi bi-send me-2"></i>Apply Now
+          </a>
+          <a href="{% url 'batches_public' %}" class="btn btn-outline-light btn-lg px-4">
+            <i class="bi bi-calendar3 me-2"></i>View Batches
+          </a>
+        </div>
+      </div>
+      <div class="col-lg-5 mt-5 mt-lg-0">
+        <!-- ID card mini preview -->
+        <div style="background:#fff;border:2px solid #e5e7eb;border-radius:12px;overflow:hidden;box-shadow:0 20px 40px rgba(0,0,0,.15);max-width:320px;margin:auto">
+          <div style="background:#b91c1c;padding:.5rem 1rem;text-align:center">
+            <span style="color:#eab308;font-family:'Rajdhani',sans-serif;font-size:1.2rem;font-weight:700;letter-spacing:.1em">ENTITY CARD</span>
+          </div>
+          <div style="padding:.8rem;display:flex;gap:.8rem">
+            <div style="width:60px;height:78px;background:#f3f4f6;border:2px solid #b91c1c;border-radius:3px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <i class="bi bi-person-bounding-box" style="font-size:1.4rem;color:#9ca3af"></i>
+            </div>
+            <div style="flex:1;font-size:.72rem">
+              <div style="display:flex;gap:.2rem;margin-bottom:.28rem">
+                <span style="font-weight:700;min-width:42px">Name :</span>
+                <span style="border-bottom:1px solid #d1d5db;flex:1;color:#6b7280">Your Name</span>
+              </div>
+              <div style="display:flex;gap:.2rem;margin-bottom:.28rem">
+                <span style="font-weight:700;min-width:42px">Course :</span>
+                <span style="border-bottom:1px solid #d1d5db;flex:1;color:#6b7280">F.S. Python</span>
+              </div>
+              <div style="display:flex;gap:.2rem;margin-bottom:.28rem">
+                <span style="font-weight:700;min-width:42px">Batch 1 :</span>
+                <span style="border-bottom:1px solid #d1d5db;flex:1;color:#6b7280">P4-KV</span>
+              </div>
+              <div style="display:flex;gap:.2rem">
+                <span style="font-weight:700;min-width:42px">Roll :</span>
+                <span style="border-bottom:1px solid #d1d5db;flex:1;color:#6b7280">NIT-XXXX</span>
+              </div>
+            </div>
+          </div>
+          <div style="background:#fde047;padding:.4rem .8rem;font-size:.6rem;color:#422006;font-weight:500">
+            <strong style="color:#7c2d12">Naresh i Technologies</strong> | Ameerpet, Hyderabad
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Info Strip -->
+<div class="info-strip">
+  <div class="container">
+    <div class="row text-center g-2">
+      <div class="col-6 col-md-3"><strong><i class="bi bi-currency-rupee"></i>100</strong> ID Card Fee</div>
+      <div class="col-6 col-md-3"><strong><i class="bi bi-clock me-1"></i>24–48 hrs</strong> Processing</div>
+      <div class="col-6 col-md-3"><strong><i class="bi bi-file-earmark-arrow-down me-1"></i>PDF + PNG</strong> Download</div>
+      <div class="col-6 col-md-3"><strong><i class="bi bi-qr-code me-1"></i>QR Code</strong> Included</div>
+    </div>
+  </div>
+</div>
+
+<!-- Live Batches Section -->
+{% if running_batches or upcoming_batches %}
+<section class="py-5" style="background:#f9fafb">
+  <div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h2 class="fw-bold mb-0" style="font-family:'Rajdhani',sans-serif;font-size:1.9rem">
+        <i class="bi bi-calendar3 me-2" style="color:var(--nit-red)"></i>Current Batches
+      </h2>
+      <a href="{% url 'batches_public' %}" class="btn btn-outline-secondary btn-sm">View All</a>
+    </div>
+
+    {% if running_batches %}
+    <h6 class="fw-bold mb-3" style="color:#16a34a">
+      <span class="running-dot me-2"></span>Running Now
+    </h6>
+    <div class="row g-3 mb-4">
+      {% for b in running_batches %}
+      <div class="col-md-6 col-lg-4">
+        <div class="batch-mini">
+          <div class="d-flex justify-content-between align-items-start mb-1">
+            <span class="fw-bold">{{ b.batch_code }}</span>
+            <span class="status-badge badge-approved" style="font-size:.7rem">Running</span>
+          </div>
+          <div class="fw-500 mb-1" style="color:var(--nit-red);font-size:.9rem">{{ b.course.name }}</div>
+          {% if b.faculty %}
+          <div class="text-muted small mb-1"><i class="bi bi-person me-1"></i>{{ b.faculty.name }}</div>
+          {% endif %}
+          {% if b.timing %}
+          <div class="text-muted small"><i class="bi bi-clock me-1"></i>{{ b.timing }}</div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if upcoming_batches %}
+    <h6 class="fw-bold mb-3" style="color:#d97706">
+      <span class="upcoming-dot me-2"></span>Upcoming
+    </h6>
+    <div class="row g-3">
+      {% for b in upcoming_batches %}
+      <div class="col-md-6 col-lg-4">
+        <div class="batch-mini">
+          <div class="d-flex justify-content-between align-items-start mb-1">
+            <span class="fw-bold">{{ b.batch_code }}</span>
+            <span class="status-badge badge-pending" style="font-size:.7rem">Upcoming</span>
+          </div>
+          <div class="fw-500 mb-1" style="color:var(--nit-red);font-size:.9rem">{{ b.course.name }}</div>
+          {% if b.faculty %}
+          <div class="text-muted small mb-1"><i class="bi bi-person me-1"></i>{{ b.faculty.name }}</div>
+          {% endif %}
+          <div class="text-muted small"><i class="bi bi-calendar-event me-1"></i>Starts: {{ b.start_date|date:"d M Y" }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+  </div>
+</section>
+{% endif %}
+
+<!-- How It Works -->
+<section class="py-5">
+  <div class="container">
+    <div class="text-center mb-4">
+      <h2 class="fw-bold" style="font-family:'Rajdhani',sans-serif;font-size:2rem">How It Works</h2>
+      <p class="text-muted">Simple 4-step process to get your ID card</p>
+    </div>
+    <div class="row g-4">
+      <div class="col-sm-6 col-lg-3">
+        <div class="step-card">
+          <div class="step-num">1</div>
+          <h5>Pay ₹100 Fee</h5>
+          <p class="text-muted small">Pay the ID card fee at the institute reception and collect your payment receipt.</p>
+        </div>
+      </div>
+      <div class="col-sm-6 col-lg-3">
+        <div class="step-card">
+          <div class="step-num">2</div>
+          <h5>Submit Application</h5>
+          <p class="text-muted small">Select your course & batch from the list, upload your photo and payment receipt.</p>
+        </div>
+      </div>
+      <div class="col-sm-6 col-lg-3">
+        <div class="step-card">
+          <div class="step-num">3</div>
+          <h5>Admin Verification</h5>
+          <p class="text-muted small">Admin reviews your receipt and verifies your details within 24–48 hours.</p>
+        </div>
+      </div>
+      <div class="col-sm-6 col-lg-3">
+        <div class="step-card">
+          <div class="step-num">4</div>
+          <h5>Download ID Card</h5>
+          <p class="text-muted small">Once approved, download your professional ID card in PDF or PNG format.</p>
+        </div>
+      </div>
+    </div>
+    <div class="text-center mt-4">
+      <a href="{% url 'submit_request' %}" class="btn btn-nit-red btn-lg px-5">
+        <i class="bi bi-arrow-right-circle me-2"></i>Start Your Application
+      </a>
+    </div>
+  </div>
+</section>
+{% endblock %}

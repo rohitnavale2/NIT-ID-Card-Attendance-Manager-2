@@ -1,0 +1,58 @@
+{% extends "idcard_app/base.html" %}
+{% block title %}Manage Batches — Admin{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="container d-flex justify-content-between align-items-center">
+    <div><h1><i class="bi bi-collection me-2"></i>Batches</h1><p>Manage all batches</p></div>
+    <a href="{% url 'admin_batch_add' %}" class="btn btn-nit-yellow"><i class="bi bi-plus-lg me-1"></i>Add Batch</a>
+  </div>
+</div>
+<div class="container pb-5">
+  <!-- Filter -->
+  <form method="get" class="d-flex gap-2 mb-3">
+    <select name="status" class="form-select" style="max-width:180px">
+      <option value="">All Status</option>
+      <option value="running"   {% if status_filter == 'running'   %}selected{% endif %}>Running</option>
+      <option value="upcoming"  {% if status_filter == 'upcoming'  %}selected{% endif %}>Upcoming</option>
+      <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Completed</option>
+    </select>
+    <button class="btn btn-nit-red px-4">Filter</button>
+    {% if status_filter %}<a href="{% url 'admin_batch_list' %}" class="btn btn-outline-secondary">Clear</a>{% endif %}
+  </form>
+
+  <div class="card-nit overflow-hidden">
+    <table class="table table-nit table-hover mb-0">
+      <thead><tr>
+        <th>Batch Code</th><th>Course</th><th>Faculty</th>
+        <th>Start Date</th><th>Timing</th><th>Status</th>
+        <th>Enrolled</th><th>Actions</th>
+      </tr></thead>
+      <tbody>
+        {% for b in batches %}
+        <tr>
+          <td class="fw-bold">{{ b.batch_code }}</td>
+          <td>{{ b.course.name }}</td>
+          <td>{{ b.faculty.name|default:"—" }}</td>
+          <td class="small">{{ b.start_date|date:"d M Y" }}</td>
+          <td class="small">{{ b.timing|default:"—" }}</td>
+          <td>
+            {% if b.status == 'running' %}<span class="status-badge badge-approved">Running</span>
+            {% elif b.status == 'upcoming' %}<span class="status-badge badge-pending">Upcoming</span>
+            {% else %}<span class="badge bg-secondary">Completed</span>{% endif %}
+          </td>
+          <td>{{ b.enrolled_count }}/{{ b.total_seats }}</td>
+          <td>
+            <a href="{% url 'admin_batch_edit' b.pk %}" class="btn btn-sm btn-outline-primary" title="Edit"><i class="bi bi-pencil"></i></a>
+            <a href="{% url 'send_batch_email' b.pk %}" class="btn btn-sm btn-outline-success" title="Send Announcement Email"><i class="bi bi-megaphone"></i></a>
+            <a href="{% url 'admin_batch_delete' b.pk %}" class="btn btn-sm btn-outline-danger" title="Delete"><i class="bi bi-trash"></i></a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8" class="text-center py-4 text-muted">No batches found. <a href="{% url 'admin_batch_add' %}">Add one</a></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="mt-3"><a href="{% url 'admin_dashboard' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Back to Dashboard</a></div>
+</div>
+{% endblock %}

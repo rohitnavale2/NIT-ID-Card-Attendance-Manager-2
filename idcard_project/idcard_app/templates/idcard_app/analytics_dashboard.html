@@ -1,0 +1,399 @@
+{% extends "idcard_app/base.html" %}
+{% block title %}Attendance Analytics — Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+  .kpi-card {
+    background:#fff; border:1px solid #e5e7eb; border-radius:12px;
+    padding:1.3rem 1.5rem; text-align:center; transition:box-shadow .2s, transform .2s;
+  }
+  .kpi-card:hover { box-shadow:0 8px 24px rgba(0,0,0,.10); transform:translateY(-2px); }
+  .kpi-num {
+    font-family:'Rajdhani',sans-serif; font-size:2.4rem;
+    font-weight:700; line-height:1.1; margin-bottom:.2rem;
+  }
+  .kpi-label { color:#6b7280; font-size:.8rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em; }
+  .chart-card {
+    background:#fff; border:1px solid #e5e7eb; border-radius:12px;
+    padding:1.4rem; margin-bottom:1.2rem;
+  }
+  .chart-card h6 {
+    font-family:'Rajdhani',sans-serif; font-size:1rem; font-weight:700;
+    text-transform:uppercase; letter-spacing:.06em;
+    color:var(--nit-red); margin-bottom:1.2rem;
+    border-bottom:2px solid #fee2e2; padding-bottom:.5rem;
+  }
+  .low-att-row {
+    display:flex; align-items:center; gap:.8rem;
+    padding:.6rem 0; border-bottom:1px solid #f9fafb; font-size:.88rem;
+  }
+  .low-att-row:last-child { border:none; }
+  .pct-pill {
+    font-weight:700; font-size:.78rem; padding:2px 10px; border-radius:20px;
+    min-width:52px; text-align:center;
+  }
+  .pct-pill.danger { background:#fee2e2; color:#7f1d1d; }
+  .pct-pill.warning{ background:#fef9c3; color:#713f12; }
+  .pct-pill.ok     { background:#dcfce7; color:#14532d; }
+  .mini-bar { height:6px; background:#e5e7eb; border-radius:3px; flex:1; }
+  .mini-fill{ height:100%; border-radius:3px; }
+  .top-student-row {
+    display:flex; align-items:center; gap:.8rem;
+    padding:.5rem 0; border-bottom:1px solid #f9fafb;
+  }
+  .rank-num {
+    width:28px; height:28px; border-radius:50%;
+    background:var(--nit-red); color:#fff;
+    font-size:.75rem; font-weight:700;
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0;
+  }
+  .rank-num.gold   { background:#ca8a04; }
+  .rank-num.silver { background:#6b7280; }
+  .rank-num.bronze { background:#b45309; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="container d-flex justify-content-between align-items-center">
+    <div>
+      <h1><i class="bi bi-graph-up me-2"></i>Attendance Analytics</h1>
+      <p>AI-powered insights — Module 3</p>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{% url 'admin_schedule_report' %}" class="btn btn-outline-light btn-sm">
+        <i class="bi bi-table me-1"></i>Raw Report
+      </a>
+      <a href="{% url 'admin_dashboard' %}" class="btn btn-outline-light btn-sm">
+        <i class="bi bi-speedometer2 me-1"></i>Dashboard
+      </a>
+    </div>
+  </div>
+</div>
+
+<div class="container pb-5">
+
+  <!-- KPI Row -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="kpi-card">
+        <div class="kpi-num" style="color:var(--nit-dark)">{{ today_total }}</div>
+        <div class="kpi-label">Today's Classes</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="kpi-card">
+        <div class="kpi-num" style="color:#16a34a">{{ today_present }}</div>
+        <div class="kpi-label">Present Today</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="kpi-card">
+        <div class="kpi-num" style="color:#d97706">{{ today_late }}</div>
+        <div class="kpi-label">Late Today</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="kpi-card">
+        <div class="kpi-num" style="color:#dc2626">{{ low_attendance|length }}</div>
+        <div class="kpi-label">Low Attendance</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+
+    <!-- Left column -->
+    <div class="col-lg-8">
+
+      <!-- Daily Trend Chart -->
+      <div class="chart-card">
+        <h6><i class="bi bi-graph-up me-2"></i>14-Day Attendance Trend</h6>
+        <canvas id="dailyChart" height="90"></canvas>
+      </div>
+
+      <!-- Monthly Chart -->
+      <div class="chart-card">
+        <h6><i class="bi bi-calendar3 me-2"></i>Monthly Attendance % (Last 6 Months)</h6>
+        <canvas id="monthlyChart" height="80"></canvas>
+      </div>
+
+      <!-- Batch Bar Chart -->
+      <div class="chart-card">
+        <h6><i class="bi bi-people me-2"></i>Batch-wise Attendance %</h6>
+        {% if batch_stats %}
+        <canvas id="batchChart" height="80"></canvas>
+        {% else %}
+        <p class="text-muted small text-center py-3">No batch data yet. Add schedules and attendance records.</p>
+        {% endif %}
+      </div>
+
+    </div>
+
+    <!-- Right column -->
+    <div class="col-lg-4">
+
+      <!-- Pie chart -->
+      <div class="chart-card">
+        <h6><i class="bi bi-pie-chart me-2"></i>Status Breakdown (All Time)</h6>
+        <canvas id="statusPie" height="180"></canvas>
+      </div>
+
+      <!-- Top Students -->
+      <div class="chart-card">
+        <h6><i class="bi bi-trophy me-2"></i>Top Regular Students</h6>
+        {% if top_students %}
+          {% for item in top_students %}
+          <div class="top-student-row">
+            <div class="rank-num {% if forloop.counter == 1 %}gold{% elif forloop.counter == 2 %}silver{% elif forloop.counter == 3 %}bronze{% endif %}">
+              {{ forloop.counter }}
+            </div>
+            <div class="flex-grow-1">
+              <div class="fw-500" style="font-size:.88rem">{{ item.student.get_display_name }}</div>
+              <div class="text-muted" style="font-size:.75rem">{{ item.student.get_display_roll }}</div>
+            </div>
+            <span class="pct-pill ok">{{ item.pct }}%</span>
+          </div>
+          {% endfor %}
+        {% else %}
+          <p class="text-muted small text-center py-3">No data yet.</p>
+        {% endif %}
+      </div>
+
+    </div>
+  </div><!-- row -->
+
+  <!-- Low Attendance Alert Table -->
+  <div class="chart-card mt-2">
+    <h6><i class="bi bi-exclamation-triangle me-2"></i>Students with Low Attendance (&lt; 75%)</h6>
+    {% if low_attendance %}
+    <div class="table-responsive">
+      <table class="table table-nit table-hover mb-0" style="font-size:.88rem">
+        <thead>
+          <tr><th>#</th><th>Student</th><th>Roll</th><th>Batch</th><th>Present/Total</th><th>%</th><th>Action</th></tr>
+        </thead>
+        <tbody>
+          {% for item in low_attendance %}
+          <tr>
+            <td class="text-muted">{{ forloop.counter }}</td>
+            <td class="fw-600">{{ item.student.get_display_name }}</td>
+            <td class="small">{{ item.student.get_display_roll }}</td>
+            <td class="small">{{ item.student.get_display_batch|default:"—" }}</td>
+            <td class="small">{{ item.present }}/{{ item.total }}</td>
+            <td>
+              <span class="pct-pill {% if item.pct < 50 %}danger{% else %}warning{% endif %}">
+                {{ item.pct }}%
+              </span>
+            </td>
+            <td>
+              <a href="{% url 'analytics_student_detail' item.student.pk %}"
+                 class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-eye"></i>
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="text-muted small text-center py-3">
+      <i class="bi bi-check-circle text-success me-2"></i>All students have attendance ≥ 75%. Great!
+    </p>
+    {% endif %}
+  </div>
+
+  <!-- Frequently Absent -->
+  {% if frequently_absent %}
+  <div class="chart-card mt-2">
+    <h6><i class="bi bi-person-x me-2"></i>Frequently Absent (0 attendance this week)</h6>
+    <div class="row g-2">
+      {% for item in frequently_absent %}
+      <div class="col-md-6">
+        <div class="d-flex align-items-center gap-2 p-2" style="background:#fff8f8;border-radius:8px;border:1px solid #fecaca">
+          <div style="width:36px;height:36px;background:#fee2e2;border-radius:50%;display:flex;align-items:center;justify-content:center">
+            <i class="bi bi-person-x" style="color:#dc2626;font-size:1rem"></i>
+          </div>
+          <div class="flex-grow-1">
+            <div class="fw-600" style="font-size:.85rem">{{ item.student.get_display_name }}</div>
+            <div class="text-muted" style="font-size:.75rem">{{ item.student.get_display_roll }}</div>
+          </div>
+          <a href="{% url 'analytics_student_detail' item.student.pk %}"
+             class="btn btn-sm btn-outline-danger"><i class="bi bi-eye"></i></a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Batch Stats Table -->
+  {% if batch_stats %}
+  <div class="chart-card mt-2">
+    <h6><i class="bi bi-people me-2"></i>Batch Attendance Summary</h6>
+    <div class="table-responsive">
+      <table class="table table-nit mb-0" style="font-size:.88rem">
+        <thead><tr><th>Batch</th><th>Course</th><th>Students</th><th>Present</th><th>Total</th><th>Attendance %</th></tr></thead>
+        <tbody>
+          {% for b in batch_stats %}
+          <tr>
+            <td class="fw-600">{{ b.batch }}</td>
+            <td class="small text-muted">{{ b.course }}</td>
+            <td>{{ b.students }}</td>
+            <td>{{ b.present }}</td>
+            <td>{{ b.total }}</td>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div class="mini-bar">
+                  <div class="mini-fill"
+                       style="width:{{ b.pct }}%;background:{% if b.pct >= 75 %}#16a34a{% elif b.pct >= 50 %}#d97706{% else %}#dc2626{% endif %}">
+                  </div>
+                </div>
+                <span class="pct-pill {% if b.pct >= 75 %}ok{% elif b.pct >= 50 %}warning{% else %}danger{% endif %}">
+                  {{ b.pct }}%
+                </span>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+</div><!-- container -->
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+const RED   = '#b91c1c';
+const AMBER = '#d97706';
+const GREEN = '#16a34a';
+const BLUE  = '#2563eb';
+const GRAY  = '#9ca3af';
+
+Chart.defaults.font.family = "'Inter', sans-serif";
+Chart.defaults.font.size   = 12;
+
+// ── Daily Trend ───────────────────────────────────────────────────────────────
+const dailyLabels  = {{ daily_labels_json|safe }};
+const dailyPresent = {{ daily_present_json|safe }};
+const dailyTotal   = {{ daily_total_json|safe }};
+
+new Chart(document.getElementById('dailyChart'), {
+  type: 'bar',
+  data: {
+    labels:   dailyLabels,
+    datasets: [
+      {
+        label: 'Present',
+        data:  dailyPresent,
+        backgroundColor: 'rgba(22,163,74,.75)',
+        borderRadius: 4, order: 2,
+      },
+      {
+        label: 'Total Classes',
+        data:  dailyTotal,
+        type:  'line',
+        borderColor: RED,
+        backgroundColor: 'rgba(185,28,28,.08)',
+        borderWidth: 2,
+        pointRadius: 3,
+        fill: true,
+        tension: 0.4,
+        order: 1,
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { position: 'top' } },
+    scales: {
+      y: { beginAtZero: true, ticks: { stepSize: 1 } }
+    }
+  }
+});
+
+// ── Monthly % Line ────────────────────────────────────────────────────────────
+const monthlyLabels = {{ monthly_labels_json|safe }};
+const monthlyPct    = {{ monthly_pct_json|safe }};
+
+new Chart(document.getElementById('monthlyChart'), {
+  type: 'line',
+  data: {
+    labels:   monthlyLabels,
+    datasets: [{
+      label:           'Attendance %',
+      data:            monthlyPct,
+      borderColor:     RED,
+      backgroundColor: 'rgba(185,28,28,.10)',
+      borderWidth:     3,
+      pointRadius:     5,
+      pointBackgroundColor: RED,
+      fill:            true,
+      tension:         0.4,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { beginAtZero: true, max: 100,
+           ticks: { callback: v => v + '%' } }
+    }
+  }
+});
+
+// ── Batch Bar ─────────────────────────────────────────────────────────────────
+{% if batch_stats %}
+const batchLabels = {{ batch_labels_json|safe }};
+const batchPct    = {{ batch_pct_json|safe }};
+const batchColors = batchPct.map(p => p >= 75 ? GREEN : p >= 50 ? AMBER : RED);
+
+new Chart(document.getElementById('batchChart'), {
+  type: 'bar',
+  data: {
+    labels:   batchLabels,
+    datasets: [{
+      label:           'Attendance %',
+      data:            batchPct,
+      backgroundColor: batchColors,
+      borderRadius:    5,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { beginAtZero: true, max: 100,
+           ticks: { callback: v => v + '%' } }
+    }
+  }
+});
+{% endif %}
+
+// ── Status Pie ────────────────────────────────────────────────────────────────
+const statusData = {{ status_json|safe }};
+new Chart(document.getElementById('statusPie'), {
+  type: 'doughnut',
+  data: {
+    labels:   ['Present', 'Late', 'Absent', 'Rejected'],
+    datasets: [{
+      data:            statusData,
+      backgroundColor: [GREEN, AMBER, GRAY, RED],
+      borderWidth:     2,
+      borderColor:     '#fff',
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { position: 'bottom', labels: { padding: 12, font: { size: 11 } } }
+    }
+  }
+});
+</script>
+{% endblock %}

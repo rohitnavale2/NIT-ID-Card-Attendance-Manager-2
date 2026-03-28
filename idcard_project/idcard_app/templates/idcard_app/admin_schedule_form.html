@@ -1,0 +1,153 @@
+{% extends "idcard_app/base.html" %}
+{% block title %}{{ title }} — Admin{% endblock %}
+{% block extra_css %}
+<style>
+  .preview-box {
+    background:#f9fafb; border:1px solid #e5e7eb; border-radius:8px;
+    padding:1rem; font-size:.88rem; color:#374151;
+  }
+  .preview-box .row-item { display:flex; justify-content:space-between; padding:.35rem 0; border-bottom:1px solid #f3f4f6; }
+  .preview-box .row-item:last-child { border:none; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="container">
+    <h1><i class="bi bi-calendar-week me-2"></i>{{ title }}</h1>
+    <p>Define when and where a class happens — students can only mark attendance during this window</p>
+  </div>
+</div>
+
+<div class="container pb-5">
+  <div class="row g-4 justify-content-center">
+    <div class="col-lg-7">
+      <div class="card-nit p-4">
+        <form method="post" novalidate id="scheduleForm">
+          {% csrf_token %}
+
+          {% if form.non_field_errors %}
+          <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+          {% endif %}
+
+          <div class="row g-3">
+
+            <div class="col-12">
+              <label class="form-label fw-500">{{ form.batch.label }} <span class="text-danger">*</span></label>
+              {{ form.batch }}
+              {% if form.batch.errors %}<div class="text-danger small">{{ form.batch.errors.0 }}</div>{% endif %}
+            </div>
+
+            <div class="col-12">
+              <label class="form-label fw-500">{{ form.subject.label }} <span class="text-danger">*</span></label>
+              {{ form.subject }}
+              <div class="form-text">e.g. Python Basics, Django REST Framework, SQL Queries</div>
+              {% if form.subject.errors %}<div class="text-danger small">{{ form.subject.errors.0 }}</div>{% endif %}
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label fw-500">{{ form.teacher.label }}</label>
+              {{ form.teacher }}
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label fw-500">{{ form.location.label }} <span class="text-danger">*</span></label>
+              {{ form.location }}
+              {% if form.location.errors %}<div class="text-danger small">{{ form.location.errors.0 }}</div>{% endif %}
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label fw-500">{{ form.day_of_week.label }} <span class="text-danger">*</span></label>
+              {{ form.day_of_week }}
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label fw-500">{{ form.start_time.label }} <span class="text-danger">*</span></label>
+              {{ form.start_time }}
+              {% if form.start_time.errors %}<div class="text-danger small">{{ form.start_time.errors.0 }}</div>{% endif %}
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label fw-500">{{ form.end_time.label }} <span class="text-danger">*</span></label>
+              {{ form.end_time }}
+              {% if form.end_time.errors %}<div class="text-danger small">{{ form.end_time.errors.0 }}</div>{% endif %}
+            </div>
+
+            <div class="col-12">
+              <div class="form-check">
+                {{ form.is_active }}
+                <label class="form-check-label fw-500">Active — students can mark attendance for this class</label>
+              </div>
+            </div>
+
+          </div><!-- row -->
+
+          <!-- Live Preview -->
+          <div class="mt-4 mb-3">
+            <h6 class="fw-bold mb-2"><i class="bi bi-eye me-2"></i>Schedule Preview</h6>
+            <div class="preview-box" id="preview">
+              <div class="row-item"><span class="text-muted">Subject</span><span id="p-subject">—</span></div>
+              <div class="row-item"><span class="text-muted">Day</span><span id="p-day">—</span></div>
+              <div class="row-item"><span class="text-muted">Time</span><span id="p-time">—</span></div>
+              <div class="row-item"><span class="text-muted">Location</span><span id="p-location">—</span></div>
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-between mt-3">
+            <a href="{% url 'admin_schedule_list' %}" class="btn btn-outline-secondary px-4">Cancel</a>
+            <button type="submit" class="btn btn-nit-red px-5">
+              <i class="bi bi-save me-2"></i>Save Schedule
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Side info -->
+    <div class="col-lg-4">
+      <div class="card-nit p-4">
+        <h6 class="fw-bold mb-3" style="color:var(--nit-red)"><i class="bi bi-info-circle me-2"></i>How It Works</h6>
+        <ul class="text-muted small ps-3" style="line-height:2">
+          <li>Create a schedule with batch, subject, teacher, location and time window</li>
+          <li>Students see their today's classes on the Attendance page</li>
+          <li>They can only mark attendance <strong>during the class window</strong></li>
+          <li>GPS is verified — student must be inside the building radius</li>
+          <li>Fingerprint authentication is required</li>
+          <li>First 10 minutes = Present, after that = Late</li>
+        </ul>
+        <div class="alert alert-warning py-2 mb-0" style="font-size:.82rem">
+          <i class="bi bi-clock me-1"></i>
+          Students <strong>cannot</strong> mark attendance before class starts or after it ends.
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const dayNames = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+
+function updatePreview() {
+  const subject  = document.getElementById('id_subject')?.value  || '—';
+  const dayVal   = document.getElementById('id_day_of_week')?.value;
+  const start    = document.getElementById('id_start_time')?.value || '—';
+  const end      = document.getElementById('id_end_time')?.value   || '—';
+  const locSel   = document.getElementById('id_location');
+  const locText  = locSel?.options[locSel?.selectedIndex]?.text || '—';
+
+  document.getElementById('p-subject').textContent  = subject  || '—';
+  document.getElementById('p-day').textContent      = dayVal !== '' ? dayNames[dayVal] : '—';
+  document.getElementById('p-time').textContent     = (start && end && start !== '—') ? `${start} – ${end}` : '—';
+  document.getElementById('p-location').textContent = locText !== '—— Select Location ——' ? locText : '—';
+}
+
+['id_subject','id_day_of_week','id_start_time','id_end_time','id_location'].forEach(id => {
+  document.getElementById(id)?.addEventListener('input', updatePreview);
+  document.getElementById(id)?.addEventListener('change', updatePreview);
+});
+updatePreview();
+</script>
+{% endblock %}

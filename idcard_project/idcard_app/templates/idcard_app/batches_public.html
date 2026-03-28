@@ -1,0 +1,110 @@
+{% extends "idcard_app/base.html" %}
+{% block title %}Batches — NIT{% endblock %}
+{% block extra_css %}
+<style>
+.batch-card { background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:1.4rem; height:100%; transition:box-shadow .2s,transform .2s; }
+.batch-card:hover { box-shadow:0 8px 24px rgba(0,0,0,.10); transform:translateY(-3px); }
+.badge-running  { background:#dcfce7; color:#14532d; border:1px solid #bbf7d0; }
+.badge-upcoming { background:#fef9c3; color:#713f12; border:1px solid #fde68a; }
+.badge-completed{ background:#f3f4f6; color:#374151; border:1px solid #d1d5db; }
+.status-pill { display:inline-block; padding:3px 12px; border-radius:20px; font-size:.78rem; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
+.section-title { font-family:'Rajdhani',sans-serif; font-size:1.7rem; font-weight:700; margin-bottom:1.2rem; }
+.faculty-chip { display:inline-flex; align-items:center; gap:.4rem; background:#fef2f2; color:#b91c1c; border-radius:20px; padding:3px 10px; font-size:.82rem; font-weight:600; }
+.seats-bar { height:6px; background:#e5e7eb; border-radius:3px; margin-top:.5rem; }
+.seats-fill { height:100%; border-radius:3px; background:#16a34a; transition:width .3s; }
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="container">
+    <h1><i class="bi bi-calendar3 me-2"></i>Batches Schedule</h1>
+    <p>View all running, upcoming and completed batches</p>
+  </div>
+</div>
+<div class="container pb-5">
+
+  {% if running_batches %}
+  <div class="mb-5">
+    <div class="section-title" style="color:#16a34a"><i class="bi bi-play-circle me-2"></i>Running Batches</div>
+    <div class="row g-3">
+      {% for b in running_batches %}
+      <div class="col-md-6 col-lg-4">
+        <div class="batch-card">
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <h6 class="fw-bold mb-0">{{ b.batch_code }}</h6>
+            <span class="status-pill badge-running">Running</span>
+          </div>
+          <p class="fw-600 mb-1" style="color:var(--nit-red)">{{ b.course.name }}</p>
+          {% if b.faculty %}<div class="faculty-chip mb-2"><i class="bi bi-person-fill"></i>{{ b.faculty.name }}</div>{% endif %}
+          <div class="text-muted small mb-1"><i class="bi bi-calendar-event me-1"></i>Started: {{ b.start_date|date:"d M Y" }}</div>
+          {% if b.timing %}<div class="text-muted small mb-1"><i class="bi bi-clock me-1"></i>{{ b.timing }}</div>{% endif %}
+          {% if b.description %}<p class="small text-muted mt-2 mb-0">{{ b.description }}</p>{% endif %}
+          <div class="mt-2">
+            <div class="d-flex justify-content-between small text-muted mb-1">
+              <span>Seats filled</span>
+              <span>{{ b.enrolled_count }}/{{ b.total_seats }}</span>
+            </div>
+            <div class="seats-bar">
+              <div class="seats-fill" style="width:{% widthratio b.enrolled_count b.total_seats 100 %}%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% if upcoming_batches %}
+  <div class="mb-5">
+    <div class="section-title" style="color:#d97706"><i class="bi bi-hourglass-split me-2"></i>Upcoming Batches</div>
+    <div class="row g-3">
+      {% for b in upcoming_batches %}
+      <div class="col-md-6 col-lg-4">
+        <div class="batch-card">
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <h6 class="fw-bold mb-0">{{ b.batch_code }}</h6>
+            <span class="status-pill badge-upcoming">Upcoming</span>
+          </div>
+          <p class="fw-600 mb-1" style="color:var(--nit-red)">{{ b.course.name }}</p>
+          {% if b.faculty %}<div class="faculty-chip mb-2"><i class="bi bi-person-fill"></i>{{ b.faculty.name }}</div>{% endif %}
+          <div class="text-muted small mb-1"><i class="bi bi-calendar-event me-1"></i>Starts: {{ b.start_date|date:"d M Y" }}</div>
+          {% if b.timing %}<div class="text-muted small mb-1"><i class="bi bi-clock me-1"></i>{{ b.timing }}</div>{% endif %}
+          <div class="text-muted small"><i class="bi bi-people me-1"></i>{{ b.available_seats }} seats available</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% if completed_batches %}
+  <div class="mb-5">
+    <div class="section-title text-muted"><i class="bi bi-check2-all me-2"></i>Completed Batches</div>
+    <div class="row g-3">
+      {% for b in completed_batches %}
+      <div class="col-md-6 col-lg-4">
+        <div class="batch-card" style="opacity:.75">
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <h6 class="fw-bold mb-0">{{ b.batch_code }}</h6>
+            <span class="status-pill badge-completed">Completed</span>
+          </div>
+          <p class="fw-600 mb-1 text-muted">{{ b.course.name }}</p>
+          {% if b.faculty %}<div class="faculty-chip mb-2"><i class="bi bi-person-fill"></i>{{ b.faculty.name }}</div>{% endif %}
+          <div class="text-muted small"><i class="bi bi-calendar-check me-1"></i>{{ b.start_date|date:"d M Y" }} — {{ b.end_date|date:"d M Y" }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% if not running_batches and not upcoming_batches and not completed_batches %}
+  <div class="text-center py-5 text-muted">
+    <i class="bi bi-calendar-x" style="font-size:3rem;display:block;margin-bottom:1rem"></i>
+    No batches added yet. Contact the institute for schedule.
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

@@ -1,0 +1,53 @@
+{% extends "idcard_app/base.html" %}
+{% block title %}Track Status — NIT{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="container">
+    <h1><i class="bi bi-search me-2"></i>Track Your Application</h1>
+    <p>Enter your roll number and email to check your ID card request status</p>
+  </div>
+</div>
+
+<div class="container pb-5">
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <div class="card-nit p-4">
+        <h5 class="fw-bold mb-4">Find Your Request</h5>
+        <form method="post" novalidate>
+          {% csrf_token %}
+          <div class="mb-3">
+            <label class="form-label fw-500">Roll Number / Student ID <span class="text-danger">*</span></label>
+            <input type="text" name="roll_number" class="form-control" placeholder="e.g. NIT-12345 or CUS315015" required>
+          </div>
+          <div class="mb-4">
+            <label class="form-label fw-500">Email Address <span class="text-danger">*</span></label>
+            <input type="email" name="student_email" class="form-control" placeholder="Enter your email" required>
+          </div>
+          <button type="submit" class="btn btn-nit-red w-100 py-2">
+            <i class="bi bi-search me-2"></i>Search
+          </button>
+        </form>
+      </div>
+
+      {% if request_obj %}
+      <div class="card-nit p-4 mt-4">
+        <div class="d-flex justify-content-between align-items-start mb-3">
+          <div>
+            <h5 class="fw-bold mb-1">{{ request_obj.student_name }}</h5>
+            <p class="text-muted small mb-0">{{ request_obj.course_name }}</p>
+          </div>
+          <span class="status-badge badge-{{ request_obj.status }}">
+            {{ request_obj.get_status_display }}
+          </span>
+        </div>
+        <a href="{% url 'track_status' request_obj.pk %}" class="btn btn-nit-red w-100">
+          <i class="bi bi-arrow-right-circle me-2"></i>View Full Status
+        </a>
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+</div>
+{% endblock %}

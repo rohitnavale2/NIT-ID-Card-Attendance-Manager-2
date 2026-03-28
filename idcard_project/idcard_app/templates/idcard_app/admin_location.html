@@ -1,0 +1,62 @@
+{% extends "idcard_app/base.html" %}
+{% block title %}Attendance Locations — Admin{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="container d-flex justify-content-between align-items-center">
+    <div><h1><i class="bi bi-geo-alt me-2"></i>Attendance Locations</h1><p>Define where students can mark attendance</p></div>
+    <a href="{% url 'admin_location_add' %}" class="btn btn-nit-yellow"><i class="bi bi-plus-lg me-1"></i>Add Location</a>
+  </div>
+</div>
+<div class="container pb-5">
+  <div class="row g-3">
+    {% for loc in locations %}
+    <div class="col-md-6 col-lg-4">
+      <div class="card-nit p-4">
+        <div class="d-flex justify-content-between align-items-start mb-3">
+          <div>
+            <h6 class="fw-bold mb-1">{{ loc.name }}</h6>
+            {% if loc.is_active %}
+              <span class="status-badge badge-approved">Active</span>
+            {% else %}
+              <span class="badge bg-secondary">Inactive</span>
+            {% endif %}
+          </div>
+          <div style="width:44px;height:44px;background:#fef2f2;border-radius:10px;display:flex;align-items:center;justify-content:center">
+            <i class="bi bi-building" style="color:var(--nit-red);font-size:1.2rem"></i>
+          </div>
+        </div>
+        <div class="text-muted small mb-1"><i class="bi bi-geo me-1"></i>Lat: {{ loc.latitude }}</div>
+        <div class="text-muted small mb-1"><i class="bi bi-geo me-1"></i>Lon: {{ loc.longitude }}</div>
+        <div class="text-muted small mb-3"><i class="bi bi-circle me-1"></i>Radius: <strong>{{ loc.radius_meters }}m</strong></div>
+        <div class="text-muted small mb-3"><i class="bi bi-people me-1"></i>Total records: {{ loc.attendances.count }}</div>
+        <!-- Mini Google Maps link -->
+        <a href="https://www.google.com/maps?q={{ loc.latitude }},{{ loc.longitude }}"
+           target="_blank" class="btn btn-outline-secondary btn-sm me-1">
+          <i class="bi bi-map me-1"></i>View on Map
+        </a>
+        <a href="{% url 'admin_location_edit' loc.pk %}" class="btn btn-outline-primary btn-sm me-1">
+          <i class="bi bi-pencil"></i>
+        </a>
+        <a href="{% url 'admin_location_delete' loc.pk %}" class="btn btn-outline-danger btn-sm">
+          <i class="bi bi-trash"></i>
+        </a>
+      </div>
+    </div>
+    {% empty %}
+    <div class="col-12 text-center py-5 text-muted">
+      <i class="bi bi-geo-alt" style="font-size:2.5rem;display:block;margin-bottom:.8rem"></i>
+      No locations defined yet. <a href="{% url 'admin_location_add' %}">Add one now</a>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="mt-4 d-flex gap-2">
+    <a href="{% url 'admin_attendance_report' %}" class="btn btn-nit-red">
+      <i class="bi bi-table me-1"></i>View Attendance Report
+    </a>
+    <a href="{% url 'admin_dashboard' %}" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i>Dashboard
+    </a>
+  </div>
+</div>
+{% endblock %}

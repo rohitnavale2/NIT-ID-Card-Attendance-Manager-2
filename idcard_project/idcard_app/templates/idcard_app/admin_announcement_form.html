@@ -1,0 +1,93 @@
+{% extends "idcard_app/base.html" %}
+{% block title %}{{ title }} — Admin{% endblock %}
+{% block extra_css %}
+<style>
+  .priority-preview {
+    padding:.6rem 1rem; border-radius:8px;
+    font-size:.88rem; font-weight:600;
+    border-left:4px solid;
+    display:none;
+    margin-top:.5rem;
+  }
+  .priority-preview.normal { border-color:#2563eb; background:#eff6ff; color:#1e40af; }
+  .priority-preview.high   { border-color:#d97706; background:#fffbeb; color:#92400e; }
+  .priority-preview.urgent { border-color:#dc2626; background:#fef2f2; color:#991b1b; }
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="container"><h1><i class="bi bi-megaphone me-2"></i>{{ title }}</h1></div>
+</div>
+<div class="container pb-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-7">
+      <div class="card-nit p-4">
+        <form method="post" novalidate>
+          {% csrf_token %}
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label fw-500">Title <span class="text-danger">*</span></label>
+              {{ form.title }}
+              {% if form.title.errors %}<div class="text-danger small">{{ form.title.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-500">Message <span class="text-danger">*</span></label>
+              {{ form.message }}
+              {% if form.message.errors %}<div class="text-danger small">{{ form.message.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-500">Target Batch</label>
+              {{ form.batch }}
+              <div class="form-text">Leave blank → visible to ALL students</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-500">Priority</label>
+              {{ form.priority }}
+              <!-- Priority preview -->
+              <div class="priority-preview normal" id="prev-normal">🔵 Normal — regular update</div>
+              <div class="priority-preview high"   id="prev-high">🟡 High — important notice</div>
+              <div class="priority-preview urgent" id="prev-urgent">🔴 Urgent — immediate attention needed</div>
+            </div>
+            <div class="col-12">
+              <div class="form-check">
+                {{ form.is_active }}
+                <label class="form-check-label fw-500">Visible to students immediately</label>
+              </div>
+            </div>
+          </div>
+          <div class="d-flex justify-content-between mt-4">
+            <a href="{% url 'admin_announcement_list' %}" class="btn btn-outline-secondary px-4">Cancel</a>
+            <button type="submit" class="btn btn-nit-red px-5">
+              <i class="bi bi-send me-2"></i>Publish Announcement
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card-nit p-4">
+        <h6 class="fw-bold mb-3" style="color:var(--nit-red)"><i class="bi bi-info-circle me-2"></i>Tips</h6>
+        <ul class="text-muted small ps-3" style="line-height:2">
+          <li><strong>Normal</strong> — General updates, schedule changes</li>
+          <li><strong>High</strong> — Important notices, exam dates</li>
+          <li><strong>Urgent</strong> — Holiday, emergency, immediate action</li>
+          <li>Leave batch blank to reach all students</li>
+          <li>Uncheck "Visible" to save as draft</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+function updatePriorityPreview() {
+  const val = document.getElementById('id_priority')?.value;
+  ['normal','high','urgent'].forEach(p => {
+    document.getElementById(`prev-${p}`).style.display = (val === p) ? 'block' : 'none';
+  });
+}
+document.getElementById('id_priority')?.addEventListener('change', updatePriorityPreview);
+updatePriorityPreview();
+</script>
+{% endblock %}

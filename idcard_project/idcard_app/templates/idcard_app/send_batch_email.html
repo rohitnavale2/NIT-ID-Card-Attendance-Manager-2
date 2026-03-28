@@ -1,0 +1,126 @@
+{% extends "idcard_app/base.html" %}
+{% block title %}Send Batch Announcement — Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+  .target-card {
+    border: 2px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 1.2rem 1.4rem;
+    cursor: pointer;
+    transition: border-color .2s, background .2s;
+    position: relative;
+  }
+  .target-card:has(input:checked) {
+    border-color: var(--nit-red);
+    background: #fef2f2;
+  }
+  .target-card input[type="radio"] {
+    position: absolute;
+    top: 1rem; right: 1rem;
+    width: 18px; height: 18px;
+    accent-color: var(--nit-red);
+  }
+  .count-badge {
+    display: inline-block;
+    background: var(--nit-red);
+    color: #fff;
+    border-radius: 20px;
+    padding: 2px 10px;
+    font-size: .8rem;
+    font-weight: 700;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="container">
+    <h1><i class="bi bi-megaphone me-2"></i>Send Batch Announcement</h1>
+    <p>Email students about new batch: <strong>{{ batch.batch_code }}</strong></p>
+  </div>
+</div>
+
+<div class="container pb-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-7">
+
+      <!-- Batch Info Card -->
+      <div class="card-nit p-4 mb-4">
+        <h6 class="fw-bold mb-3" style="color:var(--nit-red)">
+          <i class="bi bi-info-circle me-2"></i>Batch Details (will be sent in email)
+        </h6>
+        <div class="row g-2" style="font-size:.9rem">
+          <div class="col-6"><span class="text-muted">Batch Code:</span> <strong>{{ batch.batch_code }}</strong></div>
+          <div class="col-6"><span class="text-muted">Course:</span> <strong>{{ batch.course.name }}</strong></div>
+          <div class="col-6"><span class="text-muted">Faculty:</span> {{ batch.faculty.name|default:"TBA" }}</div>
+          <div class="col-6"><span class="text-muted">Start Date:</span> {{ batch.start_date|date:"d M Y" }}</div>
+          <div class="col-6"><span class="text-muted">Timing:</span> {{ batch.timing|default:"TBA" }}</div>
+          <div class="col-6"><span class="text-muted">Status:</span>
+            <span class="status-badge badge-{% if batch.status == 'running' %}approved{% else %}pending{% endif %}">
+              {{ batch.get_status_display }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Send Form -->
+      <form method="post">
+        {% csrf_token %}
+        <div class="card-nit p-4 mb-4">
+          <h6 class="fw-bold mb-3"><i class="bi bi-people me-2"></i>Who to Send To?</h6>
+          <div class="d-flex flex-column gap-3">
+
+            <label class="target-card">
+              <input type="radio" name="target" value="all" checked>
+              <div class="fw-bold mb-1">All Students</div>
+              <div class="text-muted small">Every student who has ever submitted a request</div>
+              <div class="mt-2"><span class="count-badge">{{ total_students }} students</span></div>
+            </label>
+
+            <label class="target-card">
+              <input type="radio" name="target" value="course">
+              <div class="fw-bold mb-1">{{ batch.course.name }} Students Only</div>
+              <div class="text-muted small">Students enrolled in this specific course</div>
+              <div class="mt-2"><span class="count-badge">{{ course_students }} students</span></div>
+            </label>
+
+            <label class="target-card">
+              <input type="radio" name="target" value="batch">
+              <div class="fw-bold mb-1">This Batch Only</div>
+              <div class="text-muted small">Students who selected this exact batch</div>
+              <div class="mt-2"><span class="count-badge">{{ batch_students }} students</span></div>
+            </label>
+
+          </div>
+        </div>
+
+        <!-- Extra emails -->
+        <div class="card-nit p-4 mb-4">
+          <h6 class="fw-bold mb-2"><i class="bi bi-envelope-plus me-2"></i>Additional Emails (optional)</h6>
+          <p class="text-muted small mb-2">Add extra email addresses separated by commas</p>
+          <textarea name="extra_emails" class="form-control" rows="2"
+            placeholder="example1@gmail.com, example2@gmail.com"></textarea>
+        </div>
+
+        <div class="alert alert-warning">
+          <i class="bi bi-exclamation-triangle me-2"></i>
+          <strong>Note:</strong> This will send emails to real students.
+          Make sure the batch details above are correct before sending.
+        </div>
+
+        <div class="d-flex justify-content-between">
+          <a href="{% url 'admin_batch_list' %}" class="btn btn-outline-secondary px-4">
+            <i class="bi bi-arrow-left me-1"></i>Cancel
+          </a>
+          <button type="submit" class="btn btn-nit-red px-5"
+            onclick="return confirm('Send batch announcement emails now?')">
+            <i class="bi bi-send me-2"></i>Send Announcement Emails
+          </button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

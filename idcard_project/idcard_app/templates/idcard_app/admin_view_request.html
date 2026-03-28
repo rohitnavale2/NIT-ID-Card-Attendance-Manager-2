@@ -1,0 +1,241 @@
+{% extends "idcard_app/base.html" %}
+{% block title %}Review Request #{{ request_obj.pk }} — NIT{% endblock %}
+
+{% block extra_css %}
+<style>
+  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; }
+  .info-item label { font-size: .75rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: #6b7280; margin-bottom: .15rem; display: block; }
+  .info-item span { font-weight: 500; color: #111827; }
+  .receipt-img { max-width: 100%; border-radius: 8px; border: 1px solid #e5e7eb; cursor: pointer; transition: opacity .2s; }
+  .receipt-img:hover { opacity: .85; }
+  .student-photo { width: 120px; height: 150px; object-fit: cover; border-radius: 8px; border: 3px solid var(--nit-red); }
+  .section-head {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: .95rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--nit-red);
+    border-bottom: 2px solid #fee2e2;
+    padding-bottom: .5rem;
+    margin-bottom: 1.2rem;
+  }
+  .card-preview-wrap {
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 1.5rem;
+    text-align: center;
+  }
+  .card-preview-wrap img {
+    max-width: 100%;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.15);
+  }
+  .action-panel {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 1.5rem;
+    position: sticky;
+    top: 80px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="container">
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
+        <h1><i class="bi bi-person-badge me-2"></i>Review Request #{{ request_obj.pk }}</h1>
+        <p>{{ request_obj.student_name }} &nbsp;•&nbsp;
+          <span class="status-badge badge-{{ request_obj.status }}">{{ request_obj.get_status_display }}</span>
+        </p>
+      </div>
+      <a href="{% url 'admin_dashboard' %}" class="btn btn-outline-light">
+        <i class="bi bi-arrow-left me-1"></i>Back
+      </a>
+    </div>
+  </div>
+</div>
+
+<div class="container pb-5">
+  <div class="row g-4">
+
+    <!-- Left: Student info + Receipt -->
+    <div class="col-lg-7">
+
+      <!-- Student info card -->
+      <div class="card-nit p-4 mb-4">
+        <div class="section-head"><i class="bi bi-person me-2"></i>Submitted Information</div>
+        <div class="d-flex gap-4 align-items-start">
+          <div>
+            {% if request_obj.student_photo %}
+              <img src="{{ request_obj.student_photo.url }}" class="student-photo" alt="Student photo">
+            {% else %}
+              <div class="student-photo d-flex align-items-center justify-content-center" style="background:#f3f4f6">
+                <i class="bi bi-person-fill" style="font-size:2.5rem;color:#9ca3af"></i>
+              </div>
+            {% endif %}
+          </div>
+          <div class="info-grid flex-grow-1">
+            <div class="info-item">
+              <label>Full Name</label>
+              <span>{{ request_obj.student_name }}</span>
+            </div>
+            <div class="info-item">
+              <label>Roll Number</label>
+              <span>{{ request_obj.roll_number }}</span>
+            </div>
+            <div class="info-item">
+              <label>Email</label>
+              <span style="font-size:.85rem">{{ request_obj.student_email }}</span>
+            </div>
+            <div class="info-item">
+              <label>Phone</label>
+              <span>{{ request_obj.student_phone }}</span>
+            </div>
+            <div class="info-item">
+              <label>Course</label>
+              <span>{{ request_obj.course_name }}</span>
+            </div>
+            <div class="info-item">
+              <label>Batch</label>
+              <span>{{ request_obj.batch_info|default:"—" }}</span>
+            </div>
+            <div class="info-item">
+              <label>Submitted</label>
+              <span style="font-size:.85rem">{{ request_obj.submitted_at|date:"d M Y, g:i A" }}</span>
+            </div>
+            <div class="info-item">
+              <label>Payment Amount</label>
+              <span>₹{{ request_obj.payment_amount }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Payment Receipt -->
+      <div class="card-nit p-4 mb-4">
+        <div class="section-head"><i class="bi bi-receipt me-2"></i>Payment Receipt</div>
+        {% if request_obj.payment_receipt %}
+          <a href="{{ request_obj.payment_receipt.url }}" target="_blank">
+            <img src="{{ request_obj.payment_receipt.url }}" class="receipt-img" alt="Payment receipt">
+          </a>
+          <p class="text-muted small mt-2">
+            <i class="bi bi-zoom-in me-1"></i>Click image to open full size
+          </p>
+        {% else %}
+          <p class="text-muted">No receipt uploaded</p>
+        {% endif %}
+      </div>
+
+      <!-- Generated Card (if any) -->
+      {% if request_obj.status == 'generated' %}
+      <div class="card-nit p-4 mb-4">
+        <div class="section-head"><i class="bi bi-credit-card me-2"></i>Generated ID Card</div>
+        <div class="card-preview-wrap">
+          {% if request_obj.generated_card_png %}
+            <img src="{{ request_obj.generated_card_png.url }}" alt="Generated ID Card">
+          {% endif %}
+          <div class="d-flex gap-2 justify-content-center mt-3">
+            {% if request_obj.generated_card_png %}
+            <a href="{% url 'admin_download_card' request_obj.pk 'png' %}" class="btn btn-success">
+              <i class="bi bi-image me-1"></i>Download PNG
+            </a>
+            {% endif %}
+            {% if request_obj.generated_card_pdf %}
+            <a href="{% url 'admin_download_card' request_obj.pk 'pdf' %}" class="btn btn-primary">
+              <i class="bi bi-file-pdf me-1"></i>Download PDF
+            </a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+    </div>
+
+    <!-- Right: Action panel -->
+    <div class="col-lg-5">
+      <div class="action-panel">
+        <div class="section-head"><i class="bi bi-check2-circle me-2"></i>Admin Action</div>
+
+        {% if request_obj.status == 'approved' and request_obj.status != 'generated' %}
+        <div class="alert alert-success mb-3">
+          <i class="bi bi-check-circle me-2"></i>
+          <strong>Approved!</strong> You can now generate the ID card.
+        </div>
+        <a href="{% url 'generate_card' request_obj.pk %}" class="btn btn-nit-red w-100 mb-3 py-2">
+          <i class="bi bi-credit-card me-2"></i>Generate ID Card Now
+        </a>
+        <hr>
+        {% endif %}
+
+        {% if request_obj.status == 'generated' %}
+        <div class="alert alert-info mb-3">
+          <i class="bi bi-credit-card me-2"></i>
+          <strong>ID Card Generated!</strong> Card is ready to download.
+        </div>
+        {% endif %}
+
+        <form method="post" novalidate>
+          {% csrf_token %}
+
+          <div class="mb-3">
+            <label class="form-label fw-500">{{ form.confirmed_name.label }}</label>
+            {{ form.confirmed_name }}
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-500">{{ form.confirmed_course.label }}</label>
+            {{ form.confirmed_course }}
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label fw-500">{{ form.confirmed_roll.label }}</label>
+              {{ form.confirmed_roll }}
+            </div>
+            <div class="col-6">
+              <label class="form-label fw-500">{{ form.confirmed_batch.label }}</label>
+              {{ form.confirmed_batch }}
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-500">{{ form.valid_till.label }}</label>
+            {{ form.valid_till }}
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-500">{{ form.status.label }}</label>
+            {{ form.status }}
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-500">{{ form.rejection_reason.label }}</label>
+            {{ form.rejection_reason }}
+            <div class="form-text">Only required when rejecting</div>
+          </div>
+
+          <button type="submit" class="btn btn-nit-red w-100 py-2">
+            <i class="bi bi-save me-2"></i>Save Changes
+          </button>
+        </form>
+
+        {% if request_obj.status == 'approved' %}
+        <div class="mt-3 text-center">
+          <a href="{% url 'generate_card' request_obj.pk %}" class="btn btn-success w-100 py-2">
+            <i class="bi bi-credit-card me-2"></i>Generate ID Card
+          </a>
+        </div>
+        {% endif %}
+
+        {% if request_obj.processed_by %}
+        <div class="mt-3 text-center text-muted small">
+          Processed by: {{ request_obj.processed_by.get_full_name|default:request_obj.processed_by.username }}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

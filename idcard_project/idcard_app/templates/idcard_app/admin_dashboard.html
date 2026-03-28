@@ -1,0 +1,403 @@
+{% extends "idcard_app/base.html" %}
+{% block title %}Admin Dashboard — NIT{% endblock %}
+
+{% block extra_css %}
+<style>
+  .stat-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 1.4rem;
+    text-align: center;
+    transition: box-shadow .2s, transform .2s;
+  }
+  .stat-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,.1); transform: translateY(-2px); }
+  .stat-num {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 2.2rem;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: .3rem;
+  }
+  .stat-label { color: #6b7280; font-size: .82rem; font-weight: 500; text-transform: uppercase; letter-spacing: .05em; }
+  .filter-bar { background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 1rem 1.2rem; margin-bottom: 1.2rem; }
+  .table-actions .btn { padding: 3px 10px; font-size: .78rem; border-radius: 6px; }
+  .photo-thumb { width: 40px; height: 40px; object-fit: cover; border-radius: 6px; border: 1px solid #e5e7eb; }
+  .admin-sidebar {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 1.2rem;
+    margin-bottom: 1.2rem;
+  }
+  .sidebar-link {
+    display: block;
+    padding: .55rem .8rem;
+    border-radius: 8px;
+    color: #374151;
+    text-decoration: none;
+    font-size: .88rem;
+    font-weight: 500;
+    transition: background .15s;
+  }
+  .sidebar-link:hover { background: #fef2f2; color: var(--nit-red); }
+  .sidebar-link.active { background: var(--nit-red); color: #fff; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="container">
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
+        <h1><i class="bi bi-speedometer2 me-2"></i>Admin Dashboard</h1>
+        <p>Welcome, {{ user.get_full_name|default:user.username }} &nbsp;•&nbsp; Manage all ID card requests</p>
+      </div>
+      <a href="{% url 'logout' %}" class="btn btn-outline-light">
+        <i class="bi bi-box-arrow-right me-1"></i>Logout
+      </a>
+    </div>
+  </div>
+</div>
+
+<div class="container pb-5">
+
+  <!-- Stats Row -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md col-lg">
+      <a href="?status=" class="text-decoration-none">
+        <div class="stat-card">
+          <div class="stat-num" style="color:var(--nit-dark)">{{ stats.total }}</div>
+          <div class="stat-label">Total</div>
+        </div>
+      </a>
+    </div>
+    <div class="col-6 col-md col-lg">
+      <a href="?status=pending" class="text-decoration-none">
+        <div class="stat-card">
+          <div class="stat-num" style="color:#d97706">{{ stats.pending }}</div>
+          <div class="stat-label">Pending</div>
+        </div>
+      </a>
+    </div>
+    <div class="col-6 col-md col-lg">
+      <a href="?status=approved" class="text-decoration-none">
+        <div class="stat-card">
+          <div class="stat-num" style="color:#16a34a">{{ stats.approved }}</div>
+          <div class="stat-label">Approved</div>
+        </div>
+      </a>
+    </div>
+    <div class="col-6 col-md col-lg">
+      <a href="?status=generated" class="text-decoration-none">
+        <div class="stat-card">
+          <div class="stat-num" style="color:#2563eb">{{ stats.generated }}</div>
+          <div class="stat-label">Generated</div>
+        </div>
+      </a>
+    </div>
+    <div class="col-6 col-md col-lg">
+      <a href="?status=rejected" class="text-decoration-none">
+        <div class="stat-card">
+          <div class="stat-num" style="color:#dc2626">{{ stats.rejected }}</div>
+          <div class="stat-label">Rejected</div>
+        </div>
+      </a>
+    </div>
+  </div>
+
+  <!-- Management Quick Links -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-4">
+      <a href="{% url 'admin_faculty_list' %}" class="text-decoration-none">
+        <div class="stat-card d-flex align-items-center gap-3 text-start">
+          <div style="width:44px;height:44px;background:#fef2f2;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <i class="bi bi-person-badge" style="color:var(--nit-red);font-size:1.3rem"></i>
+          </div>
+          <div>
+            <div class="fw-bold">Faculty</div>
+            <div class="text-muted small">Add / Edit trainers</div>
+          </div>
+          <i class="bi bi-arrow-right ms-auto text-muted"></i>
+        </div>
+      </a>
+    </div>
+    <div class="col-md-4">
+      <a href="{% url 'admin_course_list' %}" class="text-decoration-none">
+        <div class="stat-card d-flex align-items-center gap-3 text-start">
+          <div style="width:44px;height:44px;background:#eff6ff;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <i class="bi bi-mortarboard" style="color:#2563eb;font-size:1.3rem"></i>
+          </div>
+          <div>
+            <div class="fw-bold">Courses</div>
+            <div class="text-muted small">Add / Edit courses</div>
+          </div>
+          <i class="bi bi-arrow-right ms-auto text-muted"></i>
+        </div>
+      </a>
+    </div>
+    <div class="col-md-4">
+      <a href="{% url 'admin_batch_list' %}" class="text-decoration-none">
+        <div class="stat-card d-flex align-items-center gap-3 text-start">
+          <div style="width:44px;height:44px;background:#f0fdf4;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <i class="bi bi-collection" style="color:#16a34a;font-size:1.3rem"></i>
+          </div>
+          <div>
+            <div class="fw-bold">Batches</div>
+            <div class="text-muted small">Upcoming / Running</div>
+          </div>
+          <i class="bi bi-arrow-right ms-auto text-muted"></i>
+        </div>
+      </a>
+    </div>
+  </div>
+  <div class="row g-3 mb-4">
+    <div class="col-md-6">
+      <a href="{% url 'admin_location_list' %}" class="text-decoration-none">
+        <div class="stat-card d-flex align-items-center gap-3 text-start">
+          <div style="width:44px;height:44px;background:#fdf4ff;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <i class="bi bi-geo-alt" style="color:#7c3aed;font-size:1.3rem"></i>
+          </div>
+          <div>
+            <div class="fw-bold">Attendance Locations</div>
+            <div class="text-muted small">Add / manage buildings</div>
+          </div>
+          <i class="bi bi-arrow-right ms-auto text-muted"></i>
+        </div>
+      </a>
+    </div>
+    <div class="col-md-6">
+      <a href="{% url 'admin_attendance_report' %}" class="text-decoration-none">
+        <div class="stat-card d-flex align-items-center gap-3 text-start">
+          <div style="width:44px;height:44px;background:#f0f9ff;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <i class="bi bi-fingerprint" style="color:#0284c7;font-size:1.3rem"></i>
+          </div>
+          <div>
+            <div class="fw-bold">Attendance Report</div>
+            <div class="text-muted small">View all records</div>
+          </div>
+          <i class="bi bi-arrow-right ms-auto text-muted"></i>
+        </div>
+      </a>
+    </div>
+  </div>
+  <div class="row g-3 mb-4">
+    <div class="col-md-6">
+      <a href="{% url 'admin_schedule_list' %}" class="text-decoration-none">
+        <div class="stat-card d-flex align-items-center gap-3 text-start">
+          <div style="width:44px;height:44px;background:#fdf4ff;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <i class="bi bi-calendar-week" style="color:#9333ea;font-size:1.3rem"></i>
+          </div>
+          <div>
+            <div class="fw-bold">Class Schedules</div>
+            <div class="text-muted small">Timetable management</div>
+          </div>
+          <i class="bi bi-arrow-right ms-auto text-muted"></i>
+        </div>
+      </a>
+    </div>
+    <div class="col-md-6">
+      <a href="{% url 'admin_schedule_report' %}" class="text-decoration-none">
+        <div class="stat-card d-flex align-items-center gap-3 text-start">
+          <div style="width:44px;height:44px;background:#f0fdf4;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <i class="bi bi-clipboard2-check" style="color:#16a34a;font-size:1.3rem"></i>
+          </div>
+          <div>
+            <div class="fw-bold">Schedule Attendance</div>
+            <div class="text-muted small">Class-wise records</div>
+          </div>
+          <i class="bi bi-arrow-right ms-auto text-muted"></i>
+        </div>
+      </a>
+    </div>
+  </div>
+  <div class="row g-3 mb-4">
+    <div class="col-md-6">
+      <a href="{% url 'analytics_dashboard' %}" class="text-decoration-none">
+        <div class="stat-card d-flex align-items-center gap-3 text-start">
+          <div style="width:44px;height:44px;background:#fff7ed;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <i class="bi bi-graph-up" style="color:#ea580c;font-size:1.3rem"></i>
+          </div>
+          <div>
+            <div class="fw-bold">Attendance Analytics</div>
+            <div class="text-muted small">Charts, trends, low attendance</div>
+          </div>
+          <i class="bi bi-arrow-right ms-auto text-muted"></i>
+        </div>
+      </a>
+    </div>
+    <div class="col-md-6">
+      <a href="{% url 'admin_announcement_list' %}" class="text-decoration-none">
+        <div class="stat-card d-flex align-items-center gap-3 text-start">
+          <div style="width:44px;height:44px;background:#fdf4ff;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <i class="bi bi-megaphone" style="color:#9333ea;font-size:1.3rem"></i>
+          </div>
+          <div>
+            <div class="fw-bold">Announcements</div>
+            <div class="text-muted small">Publish to students</div>
+          </div>
+          <i class="bi bi-arrow-right ms-auto text-muted"></i>
+        </div>
+      </a>
+    </div>
+  </div>
+
+  <!-- Filter Bar -->
+  <div class="filter-bar d-flex flex-wrap gap-2 align-items-center">
+    <form method="get" class="d-flex flex-wrap gap-2 align-items-center w-100">
+      <div class="input-group" style="max-width:280px">
+        <span class="input-group-text"><i class="bi bi-search"></i></span>
+        <input type="text" name="q" class="form-control" placeholder="Search name, roll, course…"
+               value="{{ search_query }}">
+      </div>
+      <select name="status" class="form-select" style="max-width:160px">
+        <option value="">All Status</option>
+        <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+        <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>Approved</option>
+        <option value="generated" {% if status_filter == 'generated' %}selected{% endif %}>Generated</option>
+        <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>Rejected</option>
+      </select>
+      <button type="submit" class="btn btn-nit-red px-4">Filter</button>
+      {% if status_filter or search_query %}
+        <a href="?" class="btn btn-outline-secondary">Clear</a>
+      {% endif %}
+    </form>
+  </div>
+
+  <!-- Table -->
+  <div class="card-nit overflow-hidden">
+    <div class="table-responsive">
+      <table class="table table-nit table-hover mb-0">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Photo</th>
+            <th>Student</th>
+            <th>Course</th>
+            <th>Roll No</th>
+            <th>Submitted</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for req in page_obj %}
+          <tr id="row-{{ req.pk }}">
+            <td class="text-muted small">{{ req.pk }}</td>
+            <td>
+              {% if req.student_photo %}
+                <img src="{{ req.student_photo.url }}" class="photo-thumb" alt="photo">
+              {% else %}
+                <div class="photo-thumb d-flex align-items-center justify-content-center" style="background:#f3f4f6">
+                  <i class="bi bi-person text-muted"></i>
+                </div>
+              {% endif %}
+            </td>
+            <td>
+              <div class="fw-600">{{ req.student_name }}</div>
+              <div class="text-muted small">{{ req.student_email }}</div>
+            </td>
+            <td class="small">{{ req.course_name }}</td>
+            <td class="small fw-500">{{ req.roll_number }}</td>
+            <td class="text-muted small">{{ req.submitted_at|date:"d M Y" }}</td>
+            <td>
+              <span class="status-badge badge-{{ req.status }}" id="badge-{{ req.pk }}">
+                {{ req.get_status_display }}
+              </span>
+            </td>
+            <td>
+              <div class="table-actions d-flex gap-1">
+                <a href="{% url 'admin_view_request' req.pk %}" class="btn btn-outline-primary">
+                  <i class="bi bi-eye"></i>
+                </a>
+                {% if req.status == 'pending' %}
+                <button class="btn btn-success" onclick="quickAction({{ req.pk }}, 'approve')" title="Quick Approve">
+                  <i class="bi bi-check2"></i>
+                </button>
+                <button class="btn btn-danger" onclick="quickAction({{ req.pk }}, 'reject')" title="Quick Reject">
+                  <i class="bi bi-x"></i>
+                </button>
+                {% endif %}
+                {% if req.status == 'approved' %}
+                <a href="{% url 'generate_card' req.pk %}" class="btn btn-primary" title="Generate Card">
+                  <i class="bi bi-credit-card"></i>
+                </a>
+                {% endif %}
+                {% if req.status == 'generated' %}
+                <a href="{% url 'admin_download_card' req.pk 'png' %}" class="btn btn-info" title="Download PNG">
+                  <i class="bi bi-image"></i>
+                </a>
+                <a href="{% url 'admin_download_card' req.pk 'pdf' %}" class="btn btn-secondary" title="Download PDF">
+                  <i class="bi bi-file-pdf"></i>
+                </a>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8" class="text-center py-5 text-muted">
+              <i class="bi bi-inbox" style="font-size:2rem;display:block;margin-bottom:.5rem"></i>
+              No requests found
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Pagination -->
+  {% if page_obj.has_other_pages %}
+  <nav class="mt-3">
+    <ul class="pagination justify-content-center">
+      {% if page_obj.has_previous %}
+        <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&status={{ status_filter }}&q={{ search_query }}">Previous</a></li>
+      {% endif %}
+      <li class="page-item active"><span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span></li>
+      {% if page_obj.has_next %}
+        <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&status={{ status_filter }}&q={{ search_query }}">Next</a></li>
+      {% endif %}
+    </ul>
+  </nav>
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function quickAction(pk, action) {
+  if (!confirm(`${action === 'approve' ? 'Approve' : 'Reject'} this request?`)) return;
+  fetch(`/admin-panel/request/${pk}/quick-action/`, {
+    method: 'POST',
+    headers: {
+      'X-CSRFToken': document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '',
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: `action=${action}`
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success) {
+      const badge = document.getElementById(`badge-${pk}`);
+      if (badge) {
+        badge.className = `status-badge badge-${data.status}`;
+        badge.textContent = data.status.charAt(0).toUpperCase() + data.status.slice(1);
+      }
+      const row = document.getElementById(`row-${pk}`);
+      if (row) {
+        const actionsCell = row.querySelector('.table-actions');
+        if (actionsCell) {
+          actionsCell.innerHTML = `<a href="/admin-panel/request/${pk}/" class="btn btn-outline-primary" style="padding:3px 10px;font-size:.78rem;border-radius:6px"><i class="bi bi-eye"></i></a>`;
+          if (data.status === 'approved') {
+            actionsCell.innerHTML += `<a href="/admin-panel/request/${pk}/generate/" class="btn btn-primary" style="padding:3px 10px;font-size:.78rem;border-radius:6px"><i class="bi bi-credit-card"></i></a>`;
+          }
+        }
+      }
+    }
+  })
+  .catch(() => alert('Action failed. Please try again.'));
+}
+</script>
+{% endblock %}

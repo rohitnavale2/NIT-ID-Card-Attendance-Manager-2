@@ -1,0 +1,97 @@
+{% extends "idcard_app/base.html" %}
+{% block title %}Attendance History — {{ student.get_display_name }}{% endblock %}
+{% block extra_css %}
+<style>
+  .stat-box { background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:1.2rem; text-align:center; }
+  .stat-num { font-family:'Rajdhani',sans-serif; font-size:2rem; font-weight:700; }
+  .progress-ring { width:80px; height:80px; }
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="container d-flex justify-content-between align-items-center">
+    <div>
+      <h1><i class="bi bi-clock-history me-2"></i>Attendance History</h1>
+      <p>{{ student.get_display_name }} — {{ student.get_display_roll }}</p>
+    </div>
+    <a href="{% url 'attendance_mark' %}" class="btn btn-nit-yellow">
+      <i class="bi bi-fingerprint me-1"></i>Mark Today
+    </a>
+  </div>
+</div>
+
+<div class="container pb-5">
+  <!-- Stats -->
+  <div class="row g-3 mb-4">
+    <div class="col-4">
+      <div class="stat-box">
+        <div class="stat-num" style="color:var(--nit-dark)">{{ total }}</div>
+        <div class="text-muted small">Total Days</div>
+      </div>
+    </div>
+    <div class="col-4">
+      <div class="stat-box">
+        <div class="stat-num" style="color:#16a34a">{{ present }}</div>
+        <div class="text-muted small">Present</div>
+      </div>
+    </div>
+    <div class="col-4">
+      <div class="stat-box">
+        <div class="stat-num" style="color:{% if percent >= 75 %}#16a34a{% elif percent >= 50 %}#d97706{% else %}#dc2626{% endif %}">
+          {{ percent }}%
+        </div>
+        <div class="text-muted small">Attendance %</div>
+      </div>
+    </div>
+  </div>
+
+  {% if percent < 75 %}
+  <div class="alert alert-warning mb-4">
+    <i class="bi bi-exclamation-triangle me-2"></i>
+    Your attendance is below 75%. Please attend regularly to avoid issues.
+  </div>
+  {% endif %}
+
+  <!-- Records Table -->
+  <div class="card-nit overflow-hidden">
+    <table class="table table-nit table-hover mb-0">
+      <thead>
+        <tr>
+          <th>Date</th><th>Time</th><th>Location</th>
+          <th>Distance</th><th>Biometric</th><th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in records %}
+        <tr>
+          <td>{{ r.date|date:"d M Y" }}</td>
+          <td>{{ r.time|time:"h:i A" }}</td>
+          <td>{{ r.location.name|default:"—" }}</td>
+          <td class="small text-muted">{{ r.distance_m|floatformat:0 }}m</td>
+          <td>
+            {% if r.biometric_verified %}
+              <span class="text-success"><i class="bi bi-fingerprint"></i> Yes</span>
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td>
+            <span class="status-badge badge-{% if r.status == 'present' %}approved{% elif r.status == 'late' %}pending{% else %}rejected{% endif %}">
+              {{ r.get_status_display }}
+            </span>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="text-center py-4 text-muted">No attendance records yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="mt-3 text-center">
+    <a href="{% url 'attendance_logout' %}" class="btn btn-outline-secondary">
+      <i class="bi bi-box-arrow-right me-1"></i>Logout
+    </a>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,47 @@
+{% extends "idcard_app/base.html" %}
+{% block title %}Attendance Login — NIT{% endblock %}
+{% block extra_css %}
+<style>
+  .att-login-wrap { min-height: calc(100vh - 180px); display:flex; align-items:center; padding:2rem 0; }
+  .att-card { background:#fff; border-radius:16px; box-shadow:0 20px 40px rgba(0,0,0,.1); overflow:hidden; max-width:440px; margin:auto; }
+  .att-card .att-hdr { background:linear-gradient(135deg,#b91c1c,#7f1d1d); padding:2rem; text-align:center; color:#fff; }
+  .att-card .att-hdr .icon { font-size:2.5rem; margin-bottom:.5rem; }
+  .att-card .att-hdr h4 { font-family:'Rajdhani',sans-serif; font-size:1.6rem; font-weight:700; margin:0; }
+  .att-card .att-body { padding:2rem; }
+</style>
+{% endblock %}
+{% block content %}
+<div class="att-login-wrap">
+  <div class="container">
+    <div class="att-card">
+      <div class="att-hdr">
+        <div class="icon">👆</div>
+        <h4>Biometric Attendance</h4>
+        <p style="opacity:.8;margin:.3rem 0 0;font-size:.9rem">Enter your details to mark attendance</p>
+      </div>
+      <div class="att-body">
+        <form method="post" novalidate>
+          {% csrf_token %}
+          <div class="mb-3">
+            <label class="form-label fw-500">Roll Number</label>
+            {{ form.roll_number }}
+            {% if form.roll_number.errors %}<div class="text-danger small">{{ form.roll_number.errors.0 }}</div>{% endif %}
+          </div>
+          <div class="mb-4">
+            <label class="form-label fw-500">Email Address</label>
+            {{ form.student_email }}
+            {% if form.student_email.errors %}<div class="text-danger small">{{ form.student_email.errors.0 }}</div>{% endif %}
+          </div>
+          <button type="submit" class="btn btn-nit-red w-100 py-2">
+            <i class="bi bi-box-arrow-in-right me-2"></i>Continue to Attendance
+          </button>
+        </form>
+        <hr class="my-3">
+        <div class="text-center">
+          <a href="{% url 'home' %}" class="text-muted small"><i class="bi bi-arrow-left me-1"></i>Back to Home</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
