@@ -1,9 +1,11 @@
 from django.urls import path
 from . import views
+from django.shortcuts import redirect
 
 urlpatterns = [
     # Public
-    path('',                             views.home,            name='home'),
+    
+    path('', lambda request: redirect('login'), name='home'),
     path('batches/',                     views.batches_public,  name='batches_public'),
     path('submit/',                      views.submit_request,  name='submit_request'),
     path('status/<int:pk>/',             views.track_status,    name='track_status'),
