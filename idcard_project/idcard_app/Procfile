@@ -1,0 +1,1 @@
+web: gunicorn idcard_project.wsgi
