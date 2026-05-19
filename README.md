@@ -36,7 +36,7 @@ cd idcard_project
 
 # 2. Start (builds image, runs migrations, creates admin user)
 docker compose up --build
-```
+``
 
 The server will be available at **http://localhost:8000**
 
