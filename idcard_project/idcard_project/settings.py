@@ -1,7 +1,7 @@
 """
 Django settings for idcard_project.
 """
-
+"Django"
 import os
 from pathlib import Path
 from decouple import config
