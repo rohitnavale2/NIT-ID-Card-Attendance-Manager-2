@@ -12,7 +12,7 @@ professional CR80-sized ID card (PNG + PDF) with QR code.
 Student Portal            Admin Panel
 ──────────────            ───────────
 Home Page           →     Admin Login
-Apply for ID Card   →     Dashboard (stats + table)
+Apply for ID Card   →     Dashboard (stats + table).
   (photo + receipt)       Review Request
 Track Status        →       ├── View receipt image
 Download Card       ←       ├── Edit card details
