@@ -1,6 +1,6 @@
 """
 ID Card Generator — matches exact NIT Entity Card template.
-CR80 size: 85.6mm × 54mm at 300 DPI → 1011 × 638 px
+CR80 size: 85.6mm × 54mm at 300 DPI → 1011 × 638 px.
 """
 
 import os
