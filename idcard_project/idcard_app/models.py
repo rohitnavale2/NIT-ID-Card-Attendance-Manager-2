@@ -2,7 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
 
-
+""
 class Faculty(models.Model):
     name        = models.CharField(max_length=200)
     designation = models.CharField(max_length=200, blank=True)
