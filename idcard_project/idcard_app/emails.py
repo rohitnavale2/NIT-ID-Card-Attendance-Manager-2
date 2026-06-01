@@ -1,6 +1,6 @@
 """
 NIT ID Card Portal — Email Notifications
-Handles all outgoing emails: submission, approval, rejection, batch announcements.
+Handles all outgoing emails: submission, approval, rejection, batch announcements
 """
 
 from django.core.mail import EmailMultiAlternatives
