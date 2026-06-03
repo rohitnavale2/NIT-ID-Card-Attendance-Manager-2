@@ -1,4 +1,5 @@
-# NIT ID Card Portal
+# NIT ID Card Portal.
+
 
 A complete Django-based Student ID Card Generator for **Naresh i Technologies**.  
 Students submit a payment receipt for verification; admins approve and auto-generate a
