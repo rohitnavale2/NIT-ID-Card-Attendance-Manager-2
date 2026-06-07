@@ -29,7 +29,8 @@ Download Card       ←       ├── Edit card details
 ### Prerequisites
 - Docker Desktop (or Docker Engine + Docker Compose)
 
-### Steps
+####
+Steps
 
 ```bash
 # 1. Clone / unzip the project
