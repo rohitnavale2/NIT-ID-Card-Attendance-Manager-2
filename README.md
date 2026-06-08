@@ -3,7 +3,7 @@
 
 A complete Django-based Student ID Card Generator for **Naresh i Technologies**.  
 Students submit a payment receipt for verification; admins approve and auto-generate a
-professional CR80-sized ID card (PNG + PDF) with QR code.
+professional CR80-sized ID card (PNG + PDF) with QR code
 
 ---
 
